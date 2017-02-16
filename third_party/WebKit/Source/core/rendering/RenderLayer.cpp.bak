@@ -3254,10 +3254,10 @@ GraphicsLayer* RenderLayer::graphicsLayerBackingForScrolling() const
     }
 }
 
-CompositedLayerMapping* RenderLayer::ensureCompositedLayerMapping()//为Render Layer创建一个Composited Layer Mapping
+CompositedLayerMapping* RenderLayer::ensureCompositedLayerMapping()
 {
     if (!m_compositedLayerMapping) {
-        m_compositedLayerMapping = adoptPtr(new CompositedLayerMapping(*this));//如果还没创建则需要首先创建
+        m_compositedLayerMapping = adoptPtr(new CompositedLayerMapping(*this));
         m_compositedLayerMapping->setNeedsGraphicsLayerUpdate(GraphicsLayerUpdateSubtree);
 
         updateOrRemoveFilterEffectRenderer();

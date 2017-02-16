@@ -204,7 +204,7 @@ void RenderLayerCompositor::updateIfNeededRecursive()
     rootRenderLayer()->updateDescendantDependentFlagsForEntireSubtree();
 
     lifecycle().advanceTo(DocumentLifecycle::InCompositingUpdate);
-    updateIfNeeded();//创建Graphics Layer Tree
+    updateIfNeeded();
     lifecycle().advanceTo(DocumentLifecycle::CompositingClean);
 
     DocumentAnimations::startPendingAnimations(m_renderView.document());
@@ -315,9 +315,9 @@ static void forceRecomputePaintInvalidationRectsIncludingNonCompositingDescendan
 void RenderLayerCompositor::updateIfNeeded()
 {
     CompositingUpdateType updateType = m_pendingUpdateType;
-    m_pendingUpdateType = CompositingUpdateNone;//当m_pendingUpdateType!=CompositingUpdateNone时，表明网页的Graphics Layer Tree需要更新
+    m_pendingUpdateType = CompositingUpdateNone;
 
-    if (!hasAcceleratedCompositing()) {//要对网页的Graphics Layer Tree进行更新时需要开启硬件加速合成
+    if (!hasAcceleratedCompositing()) {
         updateWithoutAcceleratedCompositing(updateType);
         return;
     }
@@ -329,8 +329,7 @@ void RenderLayerCompositor::updateIfNeeded()
 
     Vector<RenderLayer*> layersNeedingPaintInvalidation;
 
-    if (updateType >= CompositingUpdateAfterCompositingInputChange) {//表示Graphics Layer Tree的输入发生了变化,例如Render Layer Tree中的某一个Render layer的内容发生了变化。
-        CompositingInputsUpdater(updateRoot).update();//从网页的Render Layer Tree根节点开始递归计算每一个Render Layer的Compositing Reason，主要根据各个Render Layer包含的Render Object的CSS属性来计算
+    if (updateType >= CompositingUpdateAfterCompositingInputChange) {
         CompositingInputsUpdater(updateRoot).update();
 
 #if ENABLE(ASSERT)
@@ -341,9 +340,9 @@ void RenderLayerCompositor::updateIfNeeded()
         CompositingRequirementsUpdater(m_renderView, m_compositingReasonFinder).update(updateRoot);
 
         CompositingLayerAssigner layerAssigner(this);
-        layerAssigner.assign(updateRoot, layersNeedingPaintInvalidation);//根据每一个Render Layer新的Compositing Reason决定是否需要为它创建一个新的Composited Layer Mapping或者删除它原来拥有的Composited Layer mapping.
+        layerAssigner.assign(updateRoot, layersNeedingPaintInvalidation);
 
-        bool layersChanged = layerAssigner.layersChanged();//如果状态(原来有现在没有或者原来没有现在有)发生变化则置为true
+        bool layersChanged = layerAssigner.layersChanged();
 
         {
             TRACE_EVENT0("blink", "RenderLayerCompositor::updateAfterCompositingChange");
@@ -354,14 +353,14 @@ void RenderLayerCompositor::updateIfNeeded()
         }
 
         if (layersChanged)
-            updateType = std::max(updateType, CompositingUpdateRebuildTree);//如果layersChanged==true，则updateType被更新为CompositingUpdateRebuildTree
+            updateType = std::max(updateType, CompositingUpdateRebuildTree);
     }
 
     if (updateType != CompositingUpdateNone) {
         GraphicsLayerUpdater updater;
-        updater.update(*updateRoot, layersNeedingPaintInvalidation);//检查每一个拥有Composited Layer mapping的Render layer更新它的Composited layer Mapping所描述的Graphics Layer Sub Tree
+        updater.update(*updateRoot, layersNeedingPaintInvalidation);
 
-        if (updater.needsRebuildTree())//如果上面更新了那这个值就为true
+        if (updater.needsRebuildTree())
             updateType = std::max(updateType, CompositingUpdateRebuildTree);
 
 #if ENABLE(ASSERT)
@@ -376,7 +375,7 @@ void RenderLayerCompositor::updateIfNeeded()
         ancestorInfo.childLayersOfEnclosingCompositedLayer = &childList;
         {
             TRACE_EVENT0("blink", "GraphicsLayerTreeBuilder::rebuild");
-            GraphicsLayerTreeBuilder().rebuild(*updateRoot, ancestorInfo);//从Render Layer Tree根节点开始递归创建一个新的Graphics Layer Tree，updateRoot是Render Layer tree的根节点。第二个参数时一个输出参数，它保存的是Graphics Layer Tree的根节点的子节点。Graphics Layer tree的根节点由RenderLayerCompositor类的成员函数m_rootContentLayer指向的GraphicsLayer对象描述，因此当vector不为空时它保存都是子Graphics Layer
+            GraphicsLayerTreeBuilder().rebuild(*updateRoot, ancestorInfo);
         }
 
         if (childList.isEmpty())
@@ -401,7 +400,7 @@ void RenderLayerCompositor::updateIfNeeded()
         InspectorInstrumentation::layerTreeDidChange(m_renderView.frame());
 }
 
-bool RenderLayerCompositor::allocateOrClearCompositedLayerMapping(RenderLayer* layer, const CompositingStateTransitionType compositedLayerUpdate)//为其创建或者删除Composited Layer mapping
+bool RenderLayerCompositor::allocateOrClearCompositedLayerMapping(RenderLayer* layer, const CompositingStateTransitionType compositedLayerUpdate)
 {
     bool compositedLayerMappingChanged = false;
 
@@ -424,7 +423,7 @@ bool RenderLayerCompositor::allocateOrClearCompositedLayerMapping(RenderLayer* l
         layer->setLostGroupedMapping(false);
         layer->setGroupedMapping(0);
 
-        layer->ensureCompositedLayerMapping();//创建一个Composited Layer Mapping
+        layer->ensureCompositedLayerMapping();
         compositedLayerMappingChanged = true;
 
         // At this time, the ScrollingCooridnator only supports the top-level frame.
@@ -448,7 +447,7 @@ bool RenderLayerCompositor::allocateOrClearCompositedLayerMapping(RenderLayer* l
                 }
             }
 
-            layer->clearCompositedLayerMapping();//删除原本为它创建的Composited Layer Mapping
+            layer->clearCompositedLayerMapping();
             compositedLayerMappingChanged = true;
         }
 
@@ -757,11 +756,6 @@ void RenderLayerCompositor::setOverlayLayer(GraphicsLayer* layer)
 
 bool RenderLayerCompositor::canBeComposited(const RenderLayer* layer) const
 {
-//一个Render Layer可以Compositing，需要同时满足以下4个条件：
-//1. 浏览器开启硬件加速合成，即RenderLayerCompositor类的成员变量m_hasAcceleratedCompositing的值等于true。
-//2. RenderLayer本身有Compositing绘制的需求，也就是调用它的成员函数isSelfPaintingLayer得到的返回值为true。从前面Chromium网页Render Layer Tree创建过程分析一文可以知道，Render Layer的类型一般为NormalLayer，但是如果将overflow属性设置为“hidden"，那么Render Layer的类型被设置为OverflowClipLayer。对于类型为OverflowClipLayer的RenderLayer，如果它的内容没有出现overflow，那么就没有必要对它进行Compositing。
-//3. Render Layer描述的网页内容是可见的，也就是调用它的成员函数subtreeIsInvisible得到的返回值等于false。
-//4. Render Layer的内容不是渲染在一个RenderFlowThread中，也就是与Render Layer关联的Render Object的Flow Thread State等于RenderObject::NotInsideFlowThread。从注释可以知道，在RenderFlowThread中渲染的元素是禁用硬件加速合成的，因为不能正确地使用。RenderFlowThread是CSS 3定义的一种元素显示方式
     // FIXME: We disable accelerated compositing for elements in a RenderFlowThread as it doesn't work properly.
     // See http://webkit.org/b/84900 to re-enable it.
     return m_hasAcceleratedCompositing && layer->isSelfPaintingLayer() && !layer->subtreeIsInvisible() && layer->renderer()->flowThreadState() == RenderObject::NotInsideFlowThread;

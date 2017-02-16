@@ -48,7 +48,7 @@ CompositingLayerAssigner::~CompositingLayerAssigner()
 {
 }
 
-void CompositingLayerAssigner::assign(RenderLayer* updateRoot, Vector<RenderLayer*>& layersNeedingPaintInvalidation)//为Render Layer创建或者删除Composited Layer Mapping
+void CompositingLayerAssigner::assign(RenderLayer* updateRoot, Vector<RenderLayer*>& layersNeedingPaintInvalidation)
 {
     TRACE_EVENT0("blink", "CompositingLayerAssigner::assign");
 
@@ -83,27 +83,19 @@ bool CompositingLayerAssigner::squashingWouldExceedSparsityTolerance(const Rende
 
 bool CompositingLayerAssigner::needsOwnBacking(const RenderLayer* layer) const
 {
-    if (!m_compositor->canBeComposited(layer))//判断layer描述的Render Layer是否需要Compositing
+    if (!m_compositor->canBeComposited(layer))
         return false;
 
     // If squashing is disabled, then layers that would have been squashed should just be separately composited.
     bool needsOwnBackingForDisabledSquashing = !m_layerSquashingEnabled && requiresSquashing(layer->compositingReasons());
-//如果参数layer描述的Render Layer满足以下3个条件之一，那么CompositingLayerAssigner类的成员函数needsOwnBacking就会认为它需要进行Compositing：
-//1. Render Layer的Compositing Reason表示它需要Compositing，这是通过调用前面提到的函数requiresCompositing判断的。
-//2. Render Layer的Compositing Reason表示它需要Squashing，但是浏览器禁用了“Layer Squashing”机制。当浏览器禁用“Layer Squashing”机制时，CompositingLayerAssigner类的成员变量m_layerSquashingEnabled会等于false。调用前面提到的函数requiresSquashing可以判断一个Render Layer是否需要Squashing。
-//3. Render Layer是Render Layer Tree的根节点，并且Render Layer Compositor处于Compositing模式中。除非设置了Render Layer Tree的根节点无条件Compositing，否则的话，当在Render Layer Tree根节点的子树中，没有任何Render Layer需要Compositing时， Render Layer Tree根节点也不需要Compositing，这时候Render Layer Compositor就会被设置为非Compositing模式。判断一个Render Layer是否是Render Layer Tree的根节点，调用它的成员函数isRootLayer即可，而判断一个Render Layer Compositor是否处于Compositing模式，调用它的成员函数staleInCompositingMode即可。
+
     return requiresCompositing(layer->compositingReasons()) || needsOwnBackingForDisabledSquashing || (m_compositor->staleInCompositingMode() && layer->isRootLayer());
 }
 
 CompositingStateTransitionType CompositingLayerAssigner::computeCompositedLayerUpdate(RenderLayer* layer)
 {
-//一个Render Layer的Compositing State Transition分为4种:
-//1. 它需要Compositing，但是还没有创建Composited Layer Mapping，这时候Compositing State Transition设置为AllocateOwnCompositedLayerMapping，表示要创建一个新的Composited Layer Mapping。
-//2. 它不需要Compositing，但是之前已经创建有Composited Layer Mapping，这时候Compositing State Transition设置为RemoveOwnCompositedLayerMapping，表示要删除之前创建的Composited Layer Mapping。
-//3. 它需要Squashing，这时候Compositing State Transition设置为PutInSquashingLayer，表示要将它绘制离其最近的一个Render Layer的Composited Layer Mapping里面的一个Squashing Layer上。
-//4. 它不需要Squashing，这时候Compositing State Transition设置为RemoveFromSquashingLayer，表示要将它从原来对应的Squashing Layer上删除。
     CompositingStateTransitionType update = NoCompositingStateChange;
-    if (needsOwnBacking(layer)) {//判断是否需要合成
+    if (needsOwnBacking(layer)) {
         if (!layer->hasCompositedLayerMapping()) {
             update = AllocateOwnCompositedLayerMapping;
         }
@@ -111,7 +103,7 @@ CompositingStateTransitionType CompositingLayerAssigner::computeCompositedLayerU
         if (layer->hasCompositedLayerMapping())
             update = RemoveOwnCompositedLayerMapping;
 
-        if (m_layerSquashingEnabled) {//默认情况下浏览器是开启Layer Squashing机制的，不过可以通过设置disable-layer-squashing进行关闭，或者通过enable-layer-squashing显示开启
+        if (m_layerSquashingEnabled) {
             if (!layer->subtreeIsInvisible() && requiresSquashing(layer->compositingReasons())) {
                 // We can't compute at this time whether the squashing layer update is a no-op,
                 // since that requires walking the render layer tree.
@@ -190,8 +182,7 @@ void CompositingLayerAssigner::updateSquashingAssignment(RenderLayer* layer, Squ
     // the squashed RenderLayer's own primary contents. This would happen when we have a composited negative z-index element that needs
     // to paint on top of the background, but below the layer's main contents. For now, because we always composite layers
     // when they have a composited negative z-index child, such layers will never need squashing so it is not yet an issue.
-    if (compositedLayerUpdate == PutInSquashingLayer) {//也是根据Render Layer的Compositing State Transition Type决定是否要将它绘制在一个Squashing Graphics Layer中，或者将它从一个Squashing Graphics Layer中删除。
-         //对于Compositing State Transition Type等于PutInSquashingLayer的Render Layer，它将会绘制在一个Squashing Graphics Layer中。这个Squashing Graphics Layer保存在一个Composited Layer Mapping中。这个Composited Layer Mapping关联的Render Layer处于要Squashing的Render Layer的下面，并且前者离后者是最近的，记录在参数squashingState描述的一个SquashingState对象的成员变量mostRecentMapping中。通过调用CompositedLayerMapping类的成员函数updateSquashingLayerAssignment可以将一个Render Layer绘制在一个Composited Layer Mapping内部维护的一个quashing Graphics Layer中。
+    if (compositedLayerUpdate == PutInSquashingLayer) {
         // A layer that is squashed with other layers cannot have its own CompositedLayerMapping.
         ASSERT(!layer->hasCompositedLayerMapping());
         ASSERT(squashingState.hasMostRecentMapping);
@@ -211,7 +202,7 @@ void CompositingLayerAssigner::updateSquashingAssignment(RenderLayer* layer, Squ
         TRACE_LAYER_INVALIDATION(layer, InspectorLayerInvalidationTrackingEvent::AddedToSquashingLayer);
         layersNeedingPaintInvalidation.append(layer);
         m_layersChanged = true;
-    } else if (compositedLayerUpdate == RemoveFromSquashingLayer) {//对于Compositing State Transition Type等于RemoveFromSquashingLayer的Render Layer，如果它之前已经被设置绘制在一个Squashing Graphics Layer中，那么就需要将它从这个Squashing Graphics Layer中删除。如果一个Render Layer之前被设置绘制在一个Squashing Graphics Layer中，那么调用它的成员函数groupedMapping就可以获得一个Grouped Mapping。这个Grouped Mapping描述的也是一个Composited Layer Mapping，并且Render Layer所绘制在的Squashing Graphics Layer就是由这个Composited Layer Mapping维护的。因此，要将一个Render Layer从一个Squashing Graphics Layer中删除，只要将它的Grouped Mapping设置为0即可。这是通过调用RenderLayer类的成员函数setGroupedMapping实现的。
+    } else if (compositedLayerUpdate == RemoveFromSquashingLayer) {
         if (layer->groupedMapping()) {
             // Before removing |layer| from an already-existing squashing layer that may have other content, issue a paint invalidation.
             m_compositor->paintInvalidationOnCompositingChange(layer);
@@ -244,7 +235,7 @@ void CompositingLayerAssigner::assignLayersToBackingsForReflectionLayer(RenderLa
         reflectionLayer->compositedLayerMapping()->updateGraphicsLayerConfiguration();
 }
 
-void CompositingLayerAssigner::assignLayersToBackingsInternal(RenderLayer* layer, SquashingState& squashingState, Vector<RenderLayer*>& layersNeedingPaintInvalidation)//从这个根节点开始，递归是否需要为每一个Render Layer创建或者删除Composited Layer Mapping。
+void CompositingLayerAssigner::assignLayersToBackingsInternal(RenderLayer* layer, SquashingState& squashingState, Vector<RenderLayer*>& layersNeedingPaintInvalidation)
 {
     if (m_layerSquashingEnabled && requiresSquashing(layer->compositingReasons())) {
         CompositingReasons reasonsPreventingSquashing = getReasonsPreventingSquashing(layer, squashingState);
@@ -252,7 +243,7 @@ void CompositingLayerAssigner::assignLayersToBackingsInternal(RenderLayer* layer
             layer->setCompositingReasons(layer->compositingReasons() | reasonsPreventingSquashing);
     }
 
-    CompositingStateTransitionType compositedLayerUpdate = computeCompositedLayerUpdate(layer);//计算参数layer描述的Render Layer的Compositing State Transition
+    CompositingStateTransitionType compositedLayerUpdate = computeCompositedLayerUpdate(layer);
 
     if (m_compositor->allocateOrClearCompositedLayerMapping(layer, compositedLayerUpdate)) {
         TRACE_LAYER_INVALIDATION(layer, InspectorLayerInvalidationTrackingEvent::NewCompositedLayer);
@@ -265,8 +256,8 @@ void CompositingLayerAssigner::assignLayersToBackingsInternal(RenderLayer* layer
         assignLayersToBackingsForReflectionLayer(layer->reflectionInfo()->reflectionLayer(), layersNeedingPaintInvalidation);
 
     // Add this layer to a squashing backing if needed.
-    if (m_layerSquashingEnabled) {//说明开启了Layer-Squashing机制
-        updateSquashingAssignment(layer, squashingState, compositedLayerUpdate, layersNeedingPaintInvalidation);//判断是否需要将参数layer描述的Render layer绘制在一个Squashing Graphics Layer中
+    if (m_layerSquashingEnabled) {
+        updateSquashingAssignment(layer, squashingState, compositedLayerUpdate, layersNeedingPaintInvalidation);
 
         const bool layerIsSquashed = compositedLayerUpdate == PutInSquashingLayer || (compositedLayerUpdate == NoCompositingStateChange && layer->groupedMapping());
         if (layerIsSquashed) {
@@ -277,12 +268,12 @@ void CompositingLayerAssigner::assignLayersToBackingsInternal(RenderLayer* layer
         }
     }
 
-    if (layer->stackingNode()->isStackingContext()) {//判断参数layer描述的Render Layer所关联的Render Object是否是一个Stacking Context。如果是的话，那么就递归调用成员函数assignLayersToBackingsInternal遍历那些z-index为负数的子Render Object对应的Render Layer，确定是否需要为它们创建Composited Layer Mapping。
+    if (layer->stackingNode()->isStackingContext()) {
         RenderLayerStackingNodeIterator iterator(*layer->stackingNode(), NegativeZOrderChildren);
         while (RenderLayerStackingNode* curNode = iterator.next())
             assignLayersToBackingsInternal(curNode->layer(), squashingState, layersNeedingPaintInvalidation);
     }
-//到目前为止，CompositingLayerAssigner类的成员函数assignLayersToBackingsInternal就处理完成参数layer描述的Render Layer，以及那些z-index为负数的子Render Layer。这时候，参数layer描述的Render Layer可能会作为那些z-index大于等于0的子Render Layer的Grouped Mapping，因此在继续递归处理z-index大于等于0的子Render Layer之前，CompositingLayerAssigner类的成员函数assignLayersToBackingsInternal需要将参数layer描述的Render Layer对应的Composited Layer Mapping记录下来，前提是这个Render Layer拥有Composited Layer Mapping。这是通过调用参数squashingState描述的一个SquashingState对象的成员函数updateSquashingStateForNewMapping实现的，实际上就是记录在该SquashingState对象的成员变量mostRecentMapping中。这样前面分析的CompositingLayerAssigner类的成员函数updateSquashingAssignment就可以知道将其参数layer描述的Render Layer绘制在哪一个Squashing Graphics Layer中。
+
     if (m_layerSquashingEnabled) {
         // At this point, if the layer is to be "separately" composited, then its backing becomes the most recent in paint-order.
         if (layer->compositingState() == PaintsIntoOwnBacking || layer->compositingState() == HasOwnBackingButPaintsIntoAncestor) {
@@ -296,7 +287,7 @@ void CompositingLayerAssigner::assignLayersToBackingsInternal(RenderLayer* layer
 
     if (layer->needsCompositedScrolling())
         layer->scrollableArea()->setTopmostScrollChild(0);
-//递归调用自己处理那些z-index大于等于0的子Render Layer。递归调用完成之后，整个Render Layer Tree就处理完毕了。这时候哪些Render Layer具有Composited Layer Mapping就可以确定了。
+
     RenderLayerStackingNodeIterator iterator(*layer->stackingNode(), NormalFlowChildren | PositiveZOrderChildren);
     while (RenderLayerStackingNode* curNode = iterator.next())
         assignLayersToBackingsInternal(curNode->layer(), squashingState, layersNeedingPaintInvalidation);

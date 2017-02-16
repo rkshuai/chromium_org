@@ -2627,21 +2627,21 @@ void FrameView::updateWidgetPositionsIfNeeded()
     updateWidgetPositions();
 }
 
-void FrameView::updateLayoutAndStyleForPainting()//对网页进行layout
+void FrameView::updateLayoutAndStyleForPainting()
 {
     // Updating layout can run script, which can tear down the FrameView.
     RefPtr<FrameView> protector(this);
 
-    updateLayoutAndStyleIfNeededRecursive();//对网页进行layout
+    updateLayoutAndStyleIfNeededRecursive();
 
     updateWidgetPositionsIfNeeded();
 
-    if (RenderView* view = renderView()) {//Render Object Tree的根节点
+    if (RenderView* view = renderView()) {
         TRACE_EVENT_INSTANT1(TRACE_DISABLED_BY_DEFAULT("devtools.timeline"), "UpdateLayerTree", "frame", m_frame.get());
         // FIXME(361045): remove InspectorInstrumentation calls once DevTools Timeline migrates to tracing.
         InspectorInstrumentation::willUpdateLayerTree(m_frame.get());
 
-        view->compositor()->updateIfNeededRecursive();//conpositor()获得RenderLayerCompositor对象，updateIfNeededRecursive根据Render Layer Tree创建或者更新Graphics Layer Tree
+        view->compositor()->updateIfNeededRecursive();
 
         if (view->compositor()->inCompositingMode() && m_frame->isLocalRoot())
             m_frame->page()->scrollingCoordinator()->updateAfterCompositingChangeIfNeeded();

@@ -42,9 +42,9 @@ GraphicsLayerFactoryChromium::~GraphicsLayerFactoryChromium()
 
 PassOwnPtr<GraphicsLayer> GraphicsLayerFactoryChromium::createGraphicsLayer(GraphicsLayerClient* client)
 {
-    OwnPtr<GraphicsLayer> layer = adoptPtr(new GraphicsLayer(client));//创建一个Graphics Layer对象
+    OwnPtr<GraphicsLayer> layer = adoptPtr(new GraphicsLayer(client));
     m_webView->registerForAnimations(layer->platformLayer());
-    return layer.release();//返回一个Graphics Layer对象
+    return layer.release();
 }
 
 } // namespace blink
