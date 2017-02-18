@@ -80,7 +80,7 @@ bool RenderFrameHostManager::ClearRFHsPendingShutdown(FrameTreeNode* node) {
   return true;
 }
 
-RenderFrameHostManager::RenderFrameHostManager(
+RenderFrameHostManager::RenderFrameHostManager(//这一步执行完成后Frame Tree即被创建出来，这是一个只有根节点的Frame tree.根节点描述的网页就是接下来要进行加载的。根节点描述的网页加载完成后就会进行解析。在解析过程中，如果碰到iframe标签，那么就会创建另一个子节点，并且添加到当前正在创建的Frame Tree中去。
     FrameTreeNode* frame_tree_node,
     RenderFrameHostDelegate* render_frame_delegate,
     RenderViewHostDelegate* render_view_delegate,
@@ -128,6 +128,8 @@ void RenderFrameHostManager::Init(BrowserContext* browser_context,
   if (!site_instance)
     site_instance = SiteInstance::Create(browser_context);
 
+//1. CreateRenderFrameHost创建RenderFrameHostImpl对象
+//2. SetRenderFrameHost将改CreateRenderFrameHost保存在内部
   SetRenderFrameHost(CreateRenderFrameHost(site_instance,
                                            view_routing_id,
                                            frame_routing_id,
@@ -201,7 +203,7 @@ RenderFrameHostImpl* RenderFrameHostManager::Navigate(
   TRACE_EVENT1("navigation", "RenderFrameHostManager:Navigate",
                "FrameTreeNode id", frame_tree_node_->frame_tree_node_id());
   // Create a pending RenderFrameHost to use for the navigation.
-  RenderFrameHostImpl* dest_render_frame_host = UpdateStateForNavigate(entry);
+  RenderFrameHostImpl* dest_render_frame_host = UpdateStateForNavigate(entry);//获得与即将要加载的URL对应的一个RenderFrameHostImpl对象
   if (!dest_render_frame_host)
     return NULL;  // We weren't able to create a pending render frame host.
 
@@ -219,7 +221,7 @@ RenderFrameHostImpl* RenderFrameHostManager::Navigate(
 
   // If the renderer crashed, then try to create a new one to satisfy this
   // navigation request.
-  if (!dest_render_frame_host->IsRenderFrameLive()) {
+  if (!dest_render_frame_host->IsRenderFrameLive()) {//这里和老罗讲的有点差别。不过不管怎样都是当没有为它关联Render View控件时需要通过InitRenderView为其关联一个Render View控件
     // Recreate the opener chain.
     int opener_route_id = delegate_->CreateOpenerRenderViewsForRenderManager(
         dest_render_frame_host->GetSiteInstance());
@@ -1064,7 +1066,7 @@ scoped_ptr<RenderFrameHostImpl> RenderFrameHostManager::CreateRenderFrameHost(
   // Create a RVH for main frames, or find the existing one for subframes.
   FrameTree* frame_tree = frame_tree_node_->frame_tree();
   RenderViewHostImpl* render_view_host = NULL;
-  if (frame_tree_node_->IsMainFrame()) {
+  if (frame_tree_node_->IsMainFrame()) {//一个Frame Tree的根节点描述的网页是一个Main Frame(网页中的iframe标签描述的网页称为Sub Frame)
     render_view_host = frame_tree->CreateRenderViewHost(
         site_instance, view_routing_id, frame_routing_id, swapped_out, hidden);
   } else {
@@ -1233,7 +1235,7 @@ bool RenderFrameHostManager::InitRenderView(
   return delegate_->CreateRenderViewForRenderManager(render_view_host,
                                                      opener_route_id,
                                                      proxy_routing_id,
-                                                     for_main_frame_navigation);
+                                                     for_main_frame_navigation);//这里的delegate_是WebContentsImpl对象，它的CreateRenderViewForRenderManager是为RenderFrameHostImpl对象创建一个Render View控件
 }
 
 bool RenderFrameHostManager::InitRenderFrame(
@@ -1465,6 +1467,7 @@ void RenderFrameHostManager::ShutdownRenderFrameProxyHostsInSiteInstance(
 
 RenderFrameHostImpl* RenderFrameHostManager::UpdateStateForNavigate(
     const NavigationEntryImpl& entry) {
+//主要做的事情就是检查即将要加载的URL，即参数entry描述的一个URL，与当前已经加载的URL，是否属于相同的站点。如果是不相同的站点，那么RenderFrameHostManager类的成员变量pending_render_frame_host_会指向另外一个RenderFrameHostImpl对象。这个RenderFrameHostImpl对象负责加载参数entry描述的URL。因此，这个RenderFrameHostImpl对象会返回给调用者。另一方面，如果即将要加载的URL与当前已经加载的URL是相同的站点，那么RenderFrameHostManager类的成员函数UpdateStateForNavigate返回的是成员变量render_frame_host_描述的RenderFrameHostImpl对象。
   // If we are currently navigating cross-process, we want to get back to normal
   // and then navigate as usual.
   if (cross_navigation_pending_) {
@@ -1645,7 +1648,7 @@ scoped_ptr<RenderFrameHostImpl> RenderFrameHostManager::SetRenderFrameHost(
   // Swap the two.
   scoped_ptr<RenderFrameHostImpl> old_render_frame_host =
       render_frame_host_.Pass();
-  render_frame_host_ = render_frame_host.Pass();
+  render_frame_host_ = render_frame_host.Pass();//将RenderFrameHostImpl对象保存在render_frame_host_中
 
   if (frame_tree_node_->IsMainFrame()) {
     // Update the count of top-level frames using this SiteInstance.  All

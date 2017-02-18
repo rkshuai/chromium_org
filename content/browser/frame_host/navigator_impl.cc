@@ -76,7 +76,7 @@ RenderFrameHostManager* GetRenderManager(RenderFrameHostImpl* rfh) {
 
 NavigatorImpl::NavigatorImpl(
     NavigationControllerImpl* navigation_controller,
-    NavigatorDelegate* delegate)
+    NavigatorDelegate* delegate)//WebContentsImpl对象
     : controller_(navigation_controller),
       delegate_(delegate) {
 }
@@ -315,7 +315,7 @@ bool NavigatorImpl::NavigateToEntry(
 
   FrameMsg_Navigate_Params navigate_params;
   RenderFrameHostManager* manager =
-      render_frame_host->frame_tree_node()->render_manager();
+      render_frame_host->frame_tree_node()->render_manager();//获得RenderFrameHostManager对象
 
   // PlzNavigate: the RenderFrameHosts are no longer asked to navigate. Instead
   // the RenderFrameHostManager handles the navigation requests for that frame
@@ -328,7 +328,7 @@ bool NavigatorImpl::NavigateToEntry(
     return manager->RequestNavigation(entry, navigate_params);
   }
 
-  RenderFrameHostImpl* dest_render_frame_host = manager->Navigate(entry);
+  RenderFrameHostImpl* dest_render_frame_host = manager->Navigate(entry);//通知它即将要导航到指定的URL去。RenderFrameHostImpl对象dest_render_frame_host与RenderFrameHostImpl对象render_frame_host有可能是相同的，也有可能是不同的。什么情况下相同呢？如果上述RenderFrameHostManager对象即将要导航到的URL与它之前已经导航至的URL属于相同站点，那么就是相同的。反之则是不同的。无论是哪一种情况，导航至指定的URL的操作最后都是通过调用RenderFrameHostImpl对象dest_render_frame_host的成员函数Navigate完成的。
   if (!dest_render_frame_host)
     return false;  // Unable to create the desired RenderFrameHost.
 
@@ -396,7 +396,7 @@ bool NavigatorImpl::NavigateToPendingEntry(
   return NavigateToEntry(
       render_frame_host,
       *NavigationEntryImpl::FromNavigationEntry(controller_->GetPendingEntry()),
-      reload_type);
+      reload_type);//GetPendingEntry获得pending_entry_描述的一个NavigationEntryImpl对象,这个对象描述的就是正在等待加载的URL
 }
 
 void NavigatorImpl::DidNavigate(

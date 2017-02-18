@@ -31,7 +31,7 @@ scoped_ptr<RenderFrameHostImpl> RenderFrameHostFactory::Create(
   }
   return make_scoped_ptr(new RenderFrameHostImpl(
       render_view_host, delegate, frame_tree, frame_tree_node, routing_id,
-      is_swapped_out));
+      is_swapped_out));//创建一个RenderFrameHostImpl对象
 }
 
 // static

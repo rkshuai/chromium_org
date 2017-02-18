@@ -75,7 +75,7 @@ friend class ImageLoader;
 friend class ResourceCacheValidationSuppressor;
 
 public:
-    static PassRefPtrWillBeRawPtr<ResourceFetcher> create(DocumentLoader* documentLoader) { return adoptRefWillBeNoop(new ResourceFetcher(documentLoader)); }
+    static PassRefPtrWillBeRawPtr<ResourceFetcher> create(DocumentLoader* documentLoader) { return adoptRefWillBeNoop(new ResourceFetcher(documentLoader)); }//创建一个ResourceFetcher对象
     virtual ~ResourceFetcher();
     virtual void trace(Visitor*);
 

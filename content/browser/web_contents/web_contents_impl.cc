@@ -252,7 +252,7 @@ void SetAccessibilityModeOnFrame(AccessibilityMode mode,
 
 }  // namespace
 
-WebContents* WebContents::Create(const WebContents::CreateParams& params) {
+WebContents* WebContents::Create(const WebContents::CreateParams& params) {//创建WebContentsImpl对象
   return WebContentsImpl::CreateWithOpener(
       params, static_cast<WebContentsImpl*>(params.opener));
 }
@@ -339,7 +339,7 @@ WebContentsImpl::WebContentsImpl(
     BrowserContext* browser_context,
     WebContentsImpl* opener)
     : delegate_(NULL),
-      controller_(this, browser_context),
+      controller_(this, browser_context),//NavigationControllerImpl对象，负责执行加载URL的操作
       render_view_host_delegate_view_(NULL),
       opener_(opener),
       created_with_opener_(!!opener),
@@ -347,7 +347,7 @@ WebContentsImpl::WebContentsImpl(
       accessible_parent_(NULL),
 #endif
       frame_tree_(new NavigatorImpl(&controller_, this),
-                  this, this, this, this),
+                  this, this, this, this),//创建FrameTree对象，也就是一个Frame Tree
       is_loading_(false),
       is_load_to_different_document_(false),
       crashed_status_(base::TERMINATION_STATUS_STILL_RUNNING),
@@ -464,7 +464,7 @@ WebContentsImpl* WebContentsImpl::CreateWithOpener(
     WebContentsImpl* opener) {
   TRACE_EVENT0("browser", "WebContentsImpl::CreateWithOpener");
   WebContentsImpl* new_contents = new WebContentsImpl(
-      params.browser_context, params.opener_suppressed ? NULL : opener);
+      params.browser_context, params.opener_suppressed ? NULL : opener);//创建WebContentsImpl对象
 
   if (params.guest_delegate) {
     // This makes |new_contents| act as a guest.
@@ -1193,12 +1193,12 @@ void WebContentsImpl::Init(const WebContents::CreateParams& params) {
 
   GetRenderManager()->Init(
       params.browser_context, params.site_instance, params.routing_id,
-      params.main_frame_routing_id);
+      params.main_frame_routing_id);//获得RenderFrameHostManager对象，然后使用init对其进行初始化
 
   WebContentsViewDelegate* delegate =
       GetContentClient()->browser()->GetWebContentsViewDelegate(this);
 
-  if (browser_plugin_guest_) {
+  if (browser_plugin_guest_) {//用来为一个Browser Plugin加载网页，不考虑这种情况
     scoped_ptr<WebContentsView> platform_view(CreateWebContentsView(
         this, delegate, &render_view_host_delegate_view_));
 
@@ -1209,7 +1209,7 @@ void WebContentsImpl::Init(const WebContents::CreateParams& params) {
     view_.reset(rv);
   } else {
     // Regular WebContentsView.
-    view_.reset(CreateWebContentsView(
+    view_.reset(CreateWebContentsView(//创建WebContentsViewAndroid对象，并且保存在view_成员变量中
         this, delegate, &render_view_host_delegate_view_));
   }
   CHECK(render_view_host_delegate_view_);
@@ -1921,7 +1921,7 @@ bool WebContentsImpl::Send(IPC::Message* message) {
 
 bool WebContentsImpl::NavigateToPendingEntry(
     NavigationController::ReloadType reload_type) {
-  FrameTreeNode* node = frame_tree_.root();
+  FrameTreeNode* node = frame_tree_.root();//代表的就是正在等待加载的网页的Main Frame
 
   // Navigate in the FrameTreeNode specified in the pending entry, if any.  This
   // is currently only used in --site-per-process and tests.
@@ -1936,7 +1936,7 @@ bool WebContentsImpl::NavigateToPendingEntry(
   }
 
   return node->navigator()->NavigateToPendingEntry(
-      node->current_frame_host(), reload_type);
+      node->current_frame_host(), reload_type);//navigator获得NavigatorImpl对象,current_frame_host获得RenderFrameHostImpl对象,NavigateToPendingEntry加载正在等待加载的URL
 }
 
 void WebContentsImpl::RenderFrameForInterstitialPageCreated(
@@ -4140,12 +4140,12 @@ bool WebContentsImpl::CreateRenderViewForRenderManager(
   // until RenderWidgetHost is attached to RenderFrameHost. We need to special
   // case this because RWH is still a base class of RenderViewHost, and child
   // frame RWHVs are unique in that they do not have their own WebContents.
-  if (!for_main_frame_navigation) {
+  if (!for_main_frame_navigation) {//当这个条件成立时表示要为网页的Sub Frame创建一个Render View控件
     RenderWidgetHostViewChildFrame* rwh_view_child =
         new RenderWidgetHostViewChildFrame(render_view_host);
     rwh_view = rwh_view_child;
-  } else {
-    rwh_view = view_->CreateViewForWidget(render_view_host);
+  } else {//当这个条件成立时要为网页的Main Frame创建一个Render View控件
+    rwh_view = view_->CreateViewForWidget(render_view_host);//view_是WebContentsViewAndroid对象，调用CreateViewForWidget创建的是一个RenderWidgetHostViewAndroid对象，而这个对象描述的Render View控件实际上是一个Surface View
   }
 
   // Now that the RenderView has been created, we need to tell it its size.
@@ -4158,7 +4158,7 @@ bool WebContentsImpl::CreateRenderViewForRenderManager(
       GetMaxPageIDForSiteInstance(render_view_host->GetSiteInstance());
 
   if (!static_cast<RenderViewHostImpl*>(
-          render_view_host)->CreateRenderView(base::string16(),
+          render_view_host)->CreateRenderView(base::string16(),//请求在对应的Render进程中创建一个RenderFrameImpl对象，这个对象与前面通过调用UpdateStateForNavigate获得的RenderFrameHostImpl对象相对应，也就是这两个对象以后可以进行Render Frame相关的进程间通信。
                                               opener_route_id,
                                               proxy_routing_id,
                                               max_page_id,

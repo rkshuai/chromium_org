@@ -213,7 +213,7 @@ ContentViewCoreImpl::ContentViewCoreImpl(
     jobject java_bridge_retained_object_set)
     : WebContentsObserver(web_contents),
       java_ref_(env, obj),
-      web_contents_(static_cast<WebContentsImpl*>(web_contents)),
+      web_contents_(static_cast<WebContentsImpl*>(web_contents)),//WebContentsImpl对象保存在web_contents中。
       root_layer_(cc::SolidColorLayer::Create()),
       dpi_scale_(GetPrimaryDisplayDeviceScaleFactor()),
       view_android_(view_android),
@@ -247,7 +247,7 @@ ContentViewCoreImpl::ContentViewCoreImpl(
                                       java_bridge_retained_object_set);
 
   InitWebContents();
-}
+}//这一步执行完成后就在Native层创建了一个shell对象和一个WebContentsImpl对象，创建的Native层WebContentsImpl对象内部维护有一个Frame Tree。创建的Native层Shell对象在Java层也有一个对应的Shell对象。
 
 ContentViewCoreImpl::~ContentViewCoreImpl() {
   JNIEnv* env = base::android::AttachCurrentThread();
@@ -1337,7 +1337,7 @@ jlong Init(JNIEnv* env,
       reinterpret_cast<WebContents*>(native_web_contents),
       reinterpret_cast<ui::ViewAndroid*>(view_android),
       reinterpret_cast<ui::WindowAndroid*>(window_android),
-      retained_objects_set);
+      retained_objects_set);//创建一个ContentViewCoreImpl对象
   return reinterpret_cast<intptr_t>(view);
 }
 

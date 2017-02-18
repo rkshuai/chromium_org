@@ -31,12 +31,12 @@ NavigationEntry* NavigationEntry::Create(const NavigationEntry& copy) {
   return new NavigationEntryImpl(static_cast<const NavigationEntryImpl&>(copy));
 }
 
-NavigationEntryImpl* NavigationEntryImpl::FromNavigationEntry(
+NavigationEntryImpl* NavigationEntryImpl::FromNavigationEntry(//将NavigationEntry指针强制转换为NavigationEntryImpl对象
     NavigationEntry* entry) {
   return static_cast<NavigationEntryImpl*>(entry);
 }
 
-NavigationEntryImpl::NavigationEntryImpl()
+NavigationEntryImpl::NavigationEntryImpl()//用于封装URL
     : unique_id_(GetUniqueIDInConstructor()),
       site_instance_(NULL),
       bindings_(kInvalidBindings),

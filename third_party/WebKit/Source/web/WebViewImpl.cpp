@@ -281,7 +281,7 @@ UserGestureNotifier::~UserGestureNotifier()
 
 // WebView ----------------------------------------------------------------
 
-WebView* WebView::create(WebViewClient* client)
+WebView* WebView::create(WebViewClient* client)//参数client指向RenderViewImpl对象
 {
     // Pass the WebViewImpl's self-reference to the caller.
     return WebViewImpl::create(client);
@@ -328,6 +328,8 @@ void WebView::didExitModalLoop()
 
 void WebViewImpl::setMainFrame(WebFrame* frame)
 {
+//参数frame指向的是一个WebLocalFrameImpl对象。调用这个WebLocalFrameImpl对象的成员函数isWebLocalFrame得到的返回值等于true。在WebKit中，Web Frame有Local和Remote之分。Local类型的Web Frame描述的是网页的Main Frame，它是在当前Render进程中加载和渲染的。Remote类型的Web Frame描述的是网页的Sub Frame，它是在其他Render进程中加载和渲染的。Sub Frame描述的网页是通过iframe标签嵌入在Main Frame描述的网页中的。
+//WebViewImpl类的成员函数setMainFrame首先调用成员函数toWebLocalFrameImpl将参数frame强制转换成一个WebLocalFrameImpl对象，以及调用成员函数page获得前面在构造函数中创建的Page对象，接下来将这个Page对象设置给上述转换得到的WebLocalFrameImpl对象，这是通过调用WebLocalFrameImpl类的成员函数initializeCoreFrame实现的。
     if (frame->isWebLocalFrame())
         toWebLocalFrameImpl(frame)->initializeCoreFrame(&page()->frameHost(), 0, nullAtom, nullAtom);
     else
@@ -431,7 +433,7 @@ WebViewImpl::WebViewImpl(WebViewClient* client)
     pageClients.spellCheckerClient = &m_spellCheckerClientImpl;
     pageClients.storageClient = &m_storageClientImpl;
 
-    m_page = adoptPtrWillBeNoop(new Page(pageClients));
+    m_page = adoptPtrWillBeNoop(new Page(pageClients));//创建一个Page对象
     MediaKeysController::provideMediaKeysTo(*m_page, &m_mediaKeysClientImpl);
     provideSpeechRecognitionTo(*m_page, SpeechRecognitionClientProxy::create(client ? client->speechRecognizer() : 0));
     provideNavigatorContentUtilsTo(*m_page, NavigatorContentUtilsClientImpl::create(this));

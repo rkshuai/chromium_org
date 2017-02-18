@@ -708,13 +708,14 @@ void RenderViewImpl::Initialize(RenderViewImplParams* params) {
   DCHECK_GE(next_page_id_, 0);
 
   main_render_frame_.reset(RenderFrameImpl::Create(
-      this, params->main_frame_routing_id));
+      this, params->main_frame_routing_id));//创建一个RenderFrameImpl对象
   // The main frame WebLocalFrame object is closed by
   // RenderFrameImpl::frameDetached().
-  WebLocalFrame* web_frame = WebLocalFrame::create(main_render_frame_.get());
-  main_render_frame_->SetWebFrame(web_frame);
+  WebLocalFrame* web_frame = WebLocalFrame::create(main_render_frame_.get());//创建一个WebLocalFrameImpl对象
+  main_render_frame_->SetWebFrame(web_frame);//将WebLocalFrameImpl对象保存在成员变量frame_中
 
-  webwidget_ = WebView::create(this);
+
+  webwidget_ = WebView::create(this);//创建一个WebViewImpl对象，并且保存在从父类RenderWidget继承下来的webwidget_中
   webwidget_mouse_lock_target_.reset(new WebWidgetLockTarget(webwidget_));
 
   const CommandLine& command_line = *CommandLine::ForCurrentProcess();
@@ -780,7 +781,7 @@ void RenderViewImpl::Initialize(RenderViewImplParams* params) {
       proxy) {
     webview()->setMainFrame(proxy->web_frame());
   } else {
-    webview()->setMainFrame(main_render_frame_->GetWebFrame());
+    webview()->setMainFrame(main_render_frame_->GetWebFrame());//GetWebFrame获得前面创建的WebLocalFrameImpl对象，并且通过setMainFrame将这个对象设置给WebViewImpl对象
   }
   main_render_frame_->Initialize();
 
@@ -1177,9 +1178,9 @@ RenderViewImpl* RenderViewImpl::Create(
   if (g_create_render_view_impl)
     render_view = g_create_render_view_impl(&params);
   else
-    render_view = new RenderViewImpl(&params);
+    render_view = new RenderViewImpl(&params);//创建RenderViewImpl对象
 
-  render_view->Initialize(&params);
+  render_view->Initialize(&params);//初始化RenderViewImpl对象
   return render_view;
 }
 

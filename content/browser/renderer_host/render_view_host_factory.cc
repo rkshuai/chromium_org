@@ -27,7 +27,7 @@ RenderViewHost* RenderViewHostFactory::Create(
                                           swapped_out);
   }
   return new RenderViewHostImpl(instance, delegate, widget_delegate, routing_id,
-                                main_frame_routing_id, swapped_out, hidden);
+                                main_frame_routing_id, swapped_out, hidden);//在创建RenderViewHostImpl对象的过程中将会启动一个Render进程，这个Render进程接下来将会负责加载指定的URL。
 }
 
 // static

@@ -303,7 +303,7 @@ bool RenderViewHostImpl::CreateRenderView(
   params.max_size = max_size_for_auto_resize();
   GetResizeParams(&params.initial_size);
 
-  if (!Send(new ViewMsg_New(params)))
+  if (!Send(new ViewMsg_New(params)))//向与当前正在处理的RenderViewHostImpl对象对应的Render进程发送一个IPC消息。这个Render进程是在创建当前正在处理的RenderViewHostImpl对象时启动的
     return false;
   SetInitialRenderSizeParams(params.initial_size);
 

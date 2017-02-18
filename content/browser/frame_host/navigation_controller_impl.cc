@@ -174,7 +174,7 @@ NavigationEntry* NavigationController::CreateNavigationEntry(
   BrowserURLHandlerImpl::GetInstance()->RewriteURLIfNecessary(
       &loaded_url, browser_context, &reverse_on_redirect);
 
-  NavigationEntryImpl* entry = new NavigationEntryImpl(
+  NavigationEntryImpl* entry = new NavigationEntryImpl(//封装了参数url描述的URL
       NULL,  // The site instance for tabs is sent on navigation
              // (WebContents::GetSiteInstance).
       -1,
@@ -219,7 +219,7 @@ NavigationControllerImpl::NavigationControllerImpl(
       last_committed_entry_index_(-1),
       pending_entry_index_(-1),
       transient_entry_index_(-1),
-      delegate_(delegate),
+      delegate_(delegate),//代表WebContentsImpl对象
       max_restored_page_id_(-1),
       ssl_manager_(this),
       needs_reload_(false),
@@ -413,8 +413,8 @@ void NavigationControllerImpl::LoadEntry(NavigationEntryImpl* entry) {
   // When navigating to a new page, we don't know for sure if we will actually
   // end up leaving the current page.  The new page load could for example
   // result in a download or a 'no content' response (e.g., a mailto: URL).
-  SetPendingEntry(entry);
-  NavigateToPendingEntry(NO_RELOAD);
+  SetPendingEntry(entry);//将参数entry指向的NavigationEntryImpl对象保存在成员变量pending_entry_中，表示NavigationEntryImpl对象封装的URL正在等待加载
+  NavigateToPendingEntry(NO_RELOAD);//对URL进行加载
 }
 
 void NavigationControllerImpl::SetPendingEntry(NavigationEntryImpl* entry) {
@@ -643,7 +643,7 @@ void NavigationControllerImpl::LoadURL(
     const Referrer& referrer,
     ui::PageTransition transition,
     const std::string& extra_headers) {
-  LoadURLParams params(url);
+  LoadURLParams params(url);//将要加载的URL封装在一个LoadURLParams中
   params.referrer = referrer;
   params.transition_type = transition;
   params.extra_headers = extra_headers;
@@ -714,7 +714,7 @@ void NavigationControllerImpl::LoadURLWithParams(const LoadURLParams& params) {
   }
 
   NavigationEntryImpl* entry = NavigationEntryImpl::FromNavigationEntry(
-      CreateNavigationEntry(
+      CreateNavigationEntry(//创建一个NavigationEntryImpl对象
           params.url,
           params.referrer,
           params.transition_type,
@@ -751,7 +751,7 @@ void NavigationControllerImpl::LoadURLWithParams(const LoadURLParams& params) {
       break;
   };
 
-  LoadEntry(entry);
+  LoadEntry(entry);//将要加载的URL封装在一个NavigationEntryImpl对象后传递给LoadEntry函数，让它执行加载URL的操作
 }
 
 bool NavigationControllerImpl::RendererDidNavigate(
@@ -1640,7 +1640,7 @@ void NavigationControllerImpl::NavigateToPendingEntry(ReloadType reload_type) {
   // This call does not support re-entrancy.  See http://crbug.com/347742.
   CHECK(!in_navigate_to_pending_entry_);
   in_navigate_to_pending_entry_ = true;
-  bool success = delegate_->NavigateToPendingEntry(reload_type);
+  bool success = delegate_->NavigateToPendingEntry(reload_type);//这里delegate_代表WebContentsImpl(见构造函数的注释)
   in_navigate_to_pending_entry_ = false;
 
   if (!success)

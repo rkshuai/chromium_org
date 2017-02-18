@@ -373,7 +373,7 @@ RenderFrameImpl* RenderFrameImpl::Create(RenderViewImpl* render_view,
   if (g_create_render_frame_impl)
     return g_create_render_frame_impl(render_view, routing_id);
   else
-    return new RenderFrameImpl(render_view, routing_id);
+    return new RenderFrameImpl(render_view, routing_id);//创建RenderFrameImpl对象
 }
 
 // static

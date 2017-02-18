@@ -188,7 +188,7 @@ namespace blink {
 
     inline void LocalFrame::init()
     {
-        m_loader.init();
+        m_loader.init();//调用FrameLoader的init函数
     }
 
     inline FrameLoader& LocalFrame::loader() const

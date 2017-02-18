@@ -149,7 +149,7 @@ void WebDataSourceImpl::setNextPluginLoadObserver(PassOwnPtr<WebPluginLoadObserv
 }
 
 WebDataSourceImpl::WebDataSourceImpl(LocalFrame* frame, const ResourceRequest& request, const SubstituteData& data)
-    : DocumentLoader(frame, request, data)
+    : DocumentLoader(frame, request, data)//实际上调用父类DocumentLoader的构造函数
 {
     if (!nextPluginLoadObserver())
         return;

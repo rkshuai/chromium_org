@@ -65,11 +65,11 @@ bool CreateProxyForSiteInstance(FrameTreeNode* source_node,
 
 }  // namespace
 
-FrameTree::FrameTree(Navigator* navigator,
-                     RenderFrameHostDelegate* render_frame_delegate,
-                     RenderViewHostDelegate* render_view_delegate,
-                     RenderWidgetHostDelegate* render_widget_delegate,
-                     RenderFrameHostManager::Delegate* manager_delegate)
+FrameTree::FrameTree(Navigator* navigator,//NavigatorImpl对象
+                     RenderFrameHostDelegate* render_frame_delegate,//WebContentsImpl对象
+                     RenderViewHostDelegate* render_view_delegate,//WebContentsImpl对象
+                     RenderWidgetHostDelegate* render_widget_delegate,//WebContentsImpl对象
+                     RenderFrameHostManager::Delegate* manager_delegate)//WebContentsImpl对象
     : render_frame_delegate_(render_frame_delegate),
       render_view_delegate_(render_view_delegate),
       render_widget_delegate_(render_widget_delegate),
@@ -80,7 +80,7 @@ FrameTree::FrameTree(Navigator* navigator,
                               render_view_delegate,
                               render_widget_delegate,
                               manager_delegate,
-                              std::string())),
+                              std::string())),//创建FrameTreeNode对象，作为当前正在创建的Frame Tree的根节点，这个根节点描述的就是后面要加载的网页。
       focused_frame_tree_node_id_(-1) {
     std::pair<FrameTreeNodeIDMap::iterator, bool> result =
         g_frame_tree_node_id_map.Get().insert(
@@ -265,7 +265,7 @@ RenderViewHostImpl* FrameTree::CreateRenderViewHost(SiteInstance* site_instance,
                                     routing_id,
                                     main_frame_routing_id,
                                     swapped_out,
-                                    hidden));
+                                    hidden));//创建RenderViewHostImpl对象 
 
   render_view_host_map_[site_instance->GetId()] = rvh;
   return rvh;

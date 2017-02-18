@@ -248,9 +248,10 @@ static ResourceRequestCachePolicy memoryCachePolicyToResourceRequestCachePolicy(
     return UseProtocolCachePolicy;
 }
 
+//这一步完成后，Render进程就处理完毕从Browser进程发送过来的类型为ViewMsg_New的IPC消息，Render进程在处理IPC消息的过程中，主要就是创建了一个RenderViewImpl对象、一个RenderFrameImpl对象、一个WebLocalFrame对象、一个LocalFrame对象，创建这些对象是为后面加载网页内容做准备的。
 ResourceFetcher::ResourceFetcher(DocumentLoader* documentLoader)
     : m_document(nullptr)
-    , m_documentLoader(documentLoader)
+    , m_documentLoader(documentLoader)//这里实际上是WebDataSourceImpl对象
     , m_requestCount(0)
     , m_garbageCollectDocumentResourcesTimer(this, &ResourceFetcher::garbageCollectDocumentResourcesTimerFired)
     , m_resourceTimingReportTimer(this, &ResourceFetcher::resourceTimingReportTimerFired)

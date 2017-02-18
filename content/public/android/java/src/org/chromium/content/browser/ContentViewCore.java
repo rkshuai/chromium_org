@@ -617,7 +617,7 @@ public class ContentViewCore
 
         mNativeContentViewCore = nativeInit(
                 nativeWebContents, viewAndroidNativePointer, windowNativePointer,
-                mRetainedJavaScriptObjects);
+                mRetainedJavaScriptObjects);//创建一个Native层的ContentViewCoreImpl对象
         mWebContents = nativeGetWebContentsAndroid(mNativeContentViewCore);
         mContentSettings = new ContentSettings(this, mNativeContentViewCore);
 

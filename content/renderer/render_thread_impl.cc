@@ -1318,7 +1318,7 @@ bool RenderThreadImpl::OnControlMessageReceived(const IPC::Message& msg) {
                         OnSetZoomLevelForCurrentURL)
     // TODO(port): removed from render_messages_internal.h;
     // is there a new non-windows message I should add here?
-    IPC_MESSAGE_HANDLER(ViewMsg_New, OnCreateNewView)
+    IPC_MESSAGE_HANDLER(ViewMsg_New, OnCreateNewView)//接收ViewMsg_New类型的IPC消息
     IPC_MESSAGE_HANDLER(ViewMsg_NetworkTypeChanged, OnNetworkTypeChanged)
     IPC_MESSAGE_HANDLER(ViewMsg_TempCrashWithData, OnTempCrashWithData)
     IPC_MESSAGE_HANDLER(WorkerProcessMsg_CreateWorker, OnCreateNewSharedWorker)
@@ -1357,7 +1357,7 @@ void RenderThreadImpl::OnSetZoomLevelForCurrentURL(const std::string& scheme,
 }
 
 void RenderThreadImpl::OnCreateNewView(const ViewMsg_New_Params& params) {
-  EnsureWebKitInitialized();
+  EnsureWebKitInitialized();//保证WebKit已经初始化
   // When bringing in render_view, also bring in webkit's glue and jsbindings.
   RenderViewImpl::Create(params.opener_route_id,
                          params.window_was_created_with_opener,
@@ -1377,7 +1377,7 @@ void RenderThreadImpl::OnCreateNewView(const ViewMsg_New_Params& params) {
                          params.initial_size,
                          params.enable_auto_resize,
                          params.min_size,
-                         params.max_size);
+                         params.max_size);//创建RenderViewImpl对象
 }
 
 GpuChannelHost* RenderThreadImpl::EstablishGpuChannelSync(

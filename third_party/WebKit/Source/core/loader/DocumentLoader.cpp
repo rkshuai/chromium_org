@@ -74,8 +74,8 @@ static bool isArchiveMIMEType(const String& mimeType)
 }
 
 DocumentLoader::DocumentLoader(LocalFrame* frame, const ResourceRequest& req, const SubstituteData& substituteData)
-    : m_frame(frame)
-    , m_fetcher(ResourceFetcher::create(this))
+    : m_frame(frame)//frame是LocalFrame对象
+    , m_fetcher(ResourceFetcher::create(this))//创建一个ResourceFetcher对象
     , m_originalRequest(req)
     , m_substituteData(substituteData)
     , m_request(req)

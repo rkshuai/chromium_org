@@ -94,13 +94,13 @@ Shell::~Shell() {
 
 Shell* Shell::CreateShell(WebContents* web_contents,
                           const gfx::Size& initial_size) {
-  Shell* shell = new Shell(web_contents);
+  Shell* shell = new Shell(web_contents);//创建一个Shell对象
   shell->PlatformCreateWindow(initial_size.width(), initial_size.height());
 
-  shell->web_contents_.reset(web_contents);
+  shell->web_contents_.reset(web_contents);//将WebContentsImpl对象保存在成员变量web_contents中
   web_contents->SetDelegate(shell);
 
-  shell->PlatformSetContents();
+  shell->PlatformSetContents();//执行一些平台相关的初始化操作
 
   shell->PlatformResizeSubViews();
 
@@ -154,12 +154,12 @@ Shell* Shell::CreateNewWindow(BrowserContext* browser_context,
                               const GURL& url,
                               SiteInstance* site_instance,
                               int routing_id,
-                              const gfx::Size& initial_size) {
+                              const gfx::Size& initial_size) {//为要加载的网页创建一个Shell
   WebContents::CreateParams create_params(browser_context, site_instance);
   create_params.routing_id = routing_id;
   create_params.initial_size = AdjustWindowSize(initial_size);
-  WebContents* web_contents = WebContents::Create(create_params);
-  Shell* shell = CreateShell(web_contents, create_params.initial_size);
+  WebContents* web_contents = WebContents::Create(create_params);//创建一个WebContentsImpl对象
+  Shell* shell = CreateShell(web_contents, create_params.initial_size);//创建一个Shell对象
   if (!url.is_empty())
     shell->LoadURL(url);
   return shell;

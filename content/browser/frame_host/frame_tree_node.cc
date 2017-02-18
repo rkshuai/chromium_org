@@ -16,8 +16,8 @@ namespace content {
 
 int64 FrameTreeNode::next_frame_tree_node_id_ = 1;
 
-FrameTreeNode::FrameTreeNode(FrameTree* frame_tree,
-                             Navigator* navigator,
+FrameTreeNode::FrameTreeNode(FrameTree* frame_tree,//FrameTree对象
+                             Navigator* navigator,//NavigatorImpl对象
                              RenderFrameHostDelegate* render_frame_delegate,
                              RenderViewHostDelegate* render_view_delegate,
                              RenderWidgetHostDelegate* render_widget_delegate,
@@ -29,7 +29,7 @@ FrameTreeNode::FrameTreeNode(FrameTree* frame_tree,
                       render_frame_delegate,
                       render_view_delegate,
                       render_widget_delegate,
-                      manager_delegate),
+                      manager_delegate),//负责管理与当前正在创建的FrameTreeNode对象关联的一个RenderFrameHost对象
       frame_tree_node_id_(next_frame_tree_node_id_++),
       frame_name_(name),
       parent_(NULL) {}

@@ -1208,19 +1208,19 @@ void RenderFrameHostImpl::Navigate(const FrameMsg_Navigate_Params& params) {
 
   // Only send the message if we aren't suspended at the start of a cross-site
   // request.
-  if (navigations_suspended_) {
+  if (navigations_suspended_) {//要挂起加载url
     // Shouldn't be possible to have a second navigation while suspended, since
     // navigations will only be suspended during a cross-site request.  If a
     // second navigation occurs, RenderFrameHostManager will cancel this pending
     // RFH and create a new pending RFH.
     DCHECK(!suspended_nav_params_.get());
     suspended_nav_params_.reset(new FrameMsg_Navigate_Params(params));
-  } else {
+  } else {//要马上加载url
     // Get back to a clean state, in case we start a new navigation without
     // completing a RVH swap or unload handler.
     render_view_host_->SetState(RenderViewHostImpl::STATE_DEFAULT);
 
-    Send(new FrameMsg_Navigate(routing_id_, params));
+    Send(new FrameMsg_Navigate(routing_id_, params));//向Render进程发送FrameMsg_Navigate的IPC消息，请求该Render进程加载该URL对应的网页。
   }
 
   // Force the throbber to start. We do this because Blink's "started

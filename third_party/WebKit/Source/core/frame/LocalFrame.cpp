@@ -90,8 +90,8 @@ static inline float parentTextZoomFactor(LocalFrame* frame)
 }
 
 inline LocalFrame::LocalFrame(FrameLoaderClient* client, FrameHost* host, FrameOwner* owner)
-    : Frame(client, host, owner)
-    , m_loader(this)
+    : Frame(client, host, owner)//调用父类Frame的构造函数
+    , m_loader(this)//构造一个FrameLoader对象
     , m_navigationScheduler(this)
     , m_script(adoptPtr(new ScriptController(this)))
     , m_editor(Editor::create(*this))
@@ -108,7 +108,7 @@ inline LocalFrame::LocalFrame(FrameLoaderClient* client, FrameHost* host, FrameO
 
 PassRefPtrWillBeRawPtr<LocalFrame> LocalFrame::create(FrameLoaderClient* client, FrameHost* host, FrameOwner* owner)
 {
-    RefPtrWillBeRawPtr<LocalFrame> frame = adoptRefWillBeNoop(new LocalFrame(client, host, owner));
+    RefPtrWillBeRawPtr<LocalFrame> frame = adoptRefWillBeNoop(new LocalFrame(client, host, owner));//创建一个LocalFrame对象并返回给调用者
     InspectorInstrumentation::frameAttachedToParent(frame.get());
     return frame.release();
 }

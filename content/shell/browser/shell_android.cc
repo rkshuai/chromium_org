@@ -58,7 +58,7 @@ void Shell::PlatformCreateWindow(int width, int height) {
 void Shell::PlatformSetContents() {
   JNIEnv* env = AttachCurrentThread();
   Java_Shell_initFromNativeTabContents(
-      env, java_object_.obj(), reinterpret_cast<intptr_t>(web_contents()));
+      env, java_object_.obj(), reinterpret_cast<intptr_t>(web_contents()));//调用initFromNativeTabContents执行平台相关的初始化操作
 }
 
 void Shell::PlatformResizeSubViews() {

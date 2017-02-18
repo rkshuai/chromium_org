@@ -194,7 +194,7 @@ public class Shell extends LinearLayout {
         if (TextUtils.equals(url, mWebContents.getUrl())) {
             mNavigationController.reload(true);
         } else {
-            mNavigationController.loadUrl(new LoadUrlParams(sanitizeUrl(url)));
+            mNavigationController.loadUrl(new LoadUrlParams(sanitizeUrl(url)));//加载参数url描述的URL,这里的mNavigationController是NavigationControllerImpl对象，而在老罗讲的5.0里面这个是ContentViewCore
         }
         mUrlTextView.clearFocus();
         // TODO(aurimas): Remove this when crbug.com/174541 is fixed.
@@ -282,7 +282,7 @@ public class Shell extends LinearLayout {
     @CalledByNative
     private void initFromNativeTabContents(long nativeWebContents) {
         Context context = getContext();
-        mContentViewCore = new ContentViewCore(context);
+        mContentViewCore = new ContentViewCore(context);//创建ContentViewCore对象
         ContentView cv = ContentView.newInstance(context, mContentViewCore);
         mContentViewCore.initialize(cv, cv, nativeWebContents, mWindow);
         mContentViewCore.setContentViewClient(mContentViewClient);
