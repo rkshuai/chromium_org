@@ -64,7 +64,7 @@ void NodeEventContext::handleLocalEvents(Event* event) const
     }
     event->setTarget(target());
     event->setCurrentTarget(m_currentTarget.get());
-    m_node->handleLocalEvents(event);
+    m_node->handleLocalEvents(event);//m_node描述的是Touch Event的Target Node。调用handleLocalEvents将当前发生的Touch Event分发给它的Dom Event Handler处理。
 }
 
 }

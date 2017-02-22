@@ -866,7 +866,7 @@ HitTestResult EventHandler::hitTestResultAtPoint(const LayoutPoint& point, HitTe
 
     // hitTestResultAtPoint is specifically used to hitTest into all frames, thus it always allows child frame content.
     HitTestRequest request(hitType | HitTestRequest::AllowChildFrameContent);
-    m_frame->contentRenderer()->hitTest(request, result);
+    m_frame->contentRenderer()->hitTest(request, result);//这里的contentRenderer返回一个RenderView对象，它是Rneder Object Tree的根节点，因此这里会走到RenderView的hitTest函数里
     if (!request.readOnly())
         m_frame->document()->updateHoverActiveState(request, result.innerElement());
 
@@ -3521,7 +3521,11 @@ HitTestResult EventHandler::hitTestResultInFrame(LocalFrame* frame, const Layout
     frame->contentRenderer()->hitTest(HitTestRequest(hitType), result);
     return result;
 }
-
+//下面这个函数主要做三件事情：
+//1. 对当前发生的Touch事件的每一个Touch Point进行Hit Test，分别找到它们的Target Node。
+//2. 对Touch Point进行分类。还与屏幕接触的是一类，不再与屏幕接触的是另一类，与屏幕接触的还分为两类，一个子类是静止不动的，另一个子类是正在移动的。另外，目标Node相同的Touch Point会被组织在同一个Touch List中
+//3. 将Touch事件分发给Target Node处理。
+//一个Touch Point的一般状态变化过程为TouchPressed->TouchMoved/TouchStationary->TouchReleased/TouchCancelled
 bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
 {
     TRACE_EVENT0("blink", "EventHandler::handleTouchEvent");
@@ -3571,10 +3575,14 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
         // Touch events implicitly capture to the touched node, and don't change
         // active/hover states themselves (Gesture events do). So we only need
         // to hit-test on touchstart, and it can be read-only.
+
         if (point.state() == PlatformTouchPoint::TouchPressed) {
             HitTestRequest::HitTestRequestType hitType = HitTestRequest::TouchEvent | HitTestRequest::ReadOnly | HitTestRequest::Active;
             LayoutPoint pagePoint = roundedLayoutPoint(m_frame->view()->windowToContents(point.pos()));
             HitTestResult result;
+            //一系列连续的Touch Event只能发生在一个Document上。如果两个Touch Event有两个或者两个以上的Touch Point具有相同的ID，那么它们就是连续的Touch Event。它们所发生在的Document由第一个连续的Touch Event的第一个处于TouchPressed状态的Touch Point确定，也就是这个Touch Point的Target Node所在的Document。这个Document一旦确定，就会维护在EventHandler类的成员变量m_touchSequenceDocument中。
+            //当一个Touch Event的所有Touch Point的状态都处于TouchReleased或者TouchCancelled时，它就结束一个连续的Touch Event系列。这时候EventHandler类的成员变量m_touchSequenceDocument就会设置为NULL，表示接下来发生的Touch Event属于另外一个连续的系列。
+            //当一个Touch Event所在的Document所未确定时，EventHandler类的成员函数handleTouchEvent调用成员函数hitTestResultAtPoint对第一个Touch Point做Hit Test；当一个Touch Event所在的Document确定时，则调用另外一个成员函数hitTestResultInFrame做Hit Test。后者会将Hit Test的范围限制在指定的Document中。后面我们将以EventHandler类的成员函数hitTestResultAtPoint为例，分析Hit Test的执行过程。
             if (!m_touchSequenceDocument) {
                 result = hitTestResultAtPoint(pagePoint, hitType);
             } else if (m_touchSequenceDocument->frame()) {
@@ -3606,7 +3614,7 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
             // cases in the browser where this happens.
             // See http://crbug.com/345372.
             m_targetForTouchID.set(point.id(), node);
-
+//上面做的事情就是对状态为TouchPress的Touch Point进行Hit Test，目的是找到它们的Target Node，并且将Target Node保存在m_targetForTouchID描述的一个Hash Map中，键值为Touch Point对应的ID。有了这个hash map，当一个Touch Point从TouchPressed状态变为其它状态时，就可以轻松地知道它的Target Node，避免做重复的Hit Test。
             TouchAction effectiveTouchAction = computeEffectiveTouchAction(*node);
             if (effectiveTouchAction != TouchActionAuto)
                 m_frame->page()->chrome().client().setTouchAction(effectiveTouchAction);
@@ -3742,6 +3750,13 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
         m_touchSequenceDocument.clear();
         m_touchSequenceUserGestureToken.clear();
     }
+//上面这些代码主要是对Touch Point进行分门别类：
+//首先，那些还与屏幕有接触的Touch Point将会保存在本地变量touches描述的一个Touch List中。那些状态不等于TouchReleased和TouchCancelled的Touch Point即为还与屏幕有接触的Touch Point。
+//其次，具有相同Target Node的Touch Point又会保存在相同的Touch List中。这些Touch List它们关联的Target Node为键值，保存在本地变量touchesByTarget描述的一个Hash Map中。
+//第三，那些位置或者状态发生变化，并且有Target Node的Touch Point会按照状态保存在本地变量changedTouches描述的一个数组中。相同状态的Touch Point保存在同一个Touch List中，它们的Target Node也会保存在同一个Hash Set中。位置或者状态发生变化的Touch Point，即为那些状态不等于TouchStationary的Touch Point。另外，如果一个Touch Point的Target Node所在的Document与当前Touch Event所发生在的Document不一致，那么该Touch Point会被认为是没有Target Node。
+//这段代码还会做另外两件事情：
+//1. 如果一个Touch Point的状态变为TouchReleased或者TouchCancelled，那么它就会从EventHandler类的成员变量m_targetForTouchID描述的一个Hash Map中移除。结合前面对第一段代码的分析，我们就可以知道，一个连续的Touch Event系列，它关联的Touch Point是会动态增加和移除的。
+//2. 如果当前发生的Touch Event的所有Touch Point的状态均为TouchReleased或者TouchCancelled，那么当前连续的Touch Event系列就会结束。这时候EventHandler类的成员变量m_touchSequenceDocument将被设置为NULL。
 
     // Now iterate the changedTouches list and m_targets within it, sending
     // events to the targets as required.
@@ -3762,7 +3777,13 @@ bool EventHandler::handleTouchEvent(const PlatformTouchEvent& event)
             swallowedEvent = swallowedEvent || touchEvent->defaultPrevented() || touchEvent->defaultHandled();
         }
     }
-
+//这段代码将Touch Event分发给Target Node处理。注意，并不是所有的Target Node都会被分发Touch Event。只有那些Touch Point位置或者状态发生了变化的Target Node才会获得Touch Event。
+//这段代码按照Touch Point的状态分发Touch Event给Target Node处理，顺序为TouchReleased->TouchPressed->TouchMoved->TouchCancelled。如果具有相同状态的Touch Point关联了不同的Target Node，那么每一个Target Node都会获得一个Touch Event。
+//每一个Target Node获得的Touch Event是不同的TouchEvent对象，每一个TouchEvent对象包含了以下三种信息：
+//1. 所有与屏幕接触的Touch Point。这些Touch Point有的位于Target Node的范围内，有的可能位于Target Node的范围外。
+//2. 位于Target Node的范围内的Touch Point。
+//3. 具有相同状态的Touch Point。
+//注意，这些Touch Point限定在当前发生的Touch Event关联的Touch Point中，也就是限定在参数event描述的Touch Event关联的Touch Po//EventHandler类的成员函数是通过Target Node的成员函数handleTouchEvent给它们分发Touch Event，也就是通过调用Node类的成员函数handleTouchEvent将Touch Event分发给Target Node处理。
     return swallowedEvent;
 }
 

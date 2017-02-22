@@ -169,7 +169,7 @@ bool PageWidgetDelegate::handleInputEvent(Page* page, PageWidgetEventHandler& ha
     case WebInputEvent::TouchCancel:
         if (!frame || !frame->view())
             return false;
-        return handler.handleTouchEvent(*frame, static_cast<const WebTouchEvent&>(event));
+        return handler.handleTouchEvent(*frame, static_cast<const WebTouchEvent&>(event));//这里的handler是WebViewImpl，但是它没有实现handleTouchEvent，因此调用父类PageWidgetEventHandler的handleTouchEvent
 
     case WebInputEvent::GesturePinchBegin:
     case WebInputEvent::GesturePinchEnd:
@@ -214,7 +214,7 @@ bool PageWidgetEventHandler::handleMouseWheel(LocalFrame& mainFrame, const WebMo
 
 bool PageWidgetEventHandler::handleTouchEvent(LocalFrame& mainFrame, const WebTouchEvent& event)
 {
-    return mainFrame.eventHandler().handleTouchEvent(PlatformTouchEventBuilder(mainFrame.view(), event));
+    return mainFrame.eventHandler().handleTouchEvent(PlatformTouchEventBuilder(mainFrame.view(), event));//mainFrame描述的是一个LocalFrame对象,调用eventHandler获得一个EventHandler对象，因此最终调用EventHandler的handlerTouchEvent函数
 }
 
 } // namespace blink

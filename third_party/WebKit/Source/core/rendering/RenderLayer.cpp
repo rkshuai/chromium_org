@@ -2411,11 +2411,11 @@ bool RenderLayer::hitTest(const HitTestRequest& request, const HitTestLocation& 
     ASSERT(!renderer()->frame()->view()->layoutPending());
     ASSERT(!renderer()->document().renderView()->needsLayout());
 
-    LayoutRect hitTestArea = renderer()->view()->documentRect();
+    LayoutRect hitTestArea = renderer()->view()->documentRect();//获得网页的Document对象占据的区域
     if (!request.ignoreClipping())
         hitTestArea.intersect(frameVisibleRect(renderer()));
 
-    RenderLayer* insideLayer = hitTestLayer(this, 0, request, result, hitTestArea, hitTestLocation, false);
+    RenderLayer* insideLayer = hitTestLayer(this, 0, request, result, hitTestArea, hitTestLocation, false);//在获得网页区域中对参数hitTestLocation描述的Touch Point进行Hit Test
     if (!insideLayer) {
         // We didn't hit any layer. If we are the root layer and the mouse is -- or just was -- down,
         // return ourselves. We do this so mouse events continue getting delivered after a drag has
@@ -2562,8 +2562,8 @@ RenderLayer* RenderLayer::hitTestLayer(RenderLayer* rootLayer, RenderLayer* cont
     }
 
     // Ensure our lists and 3d status are up-to-date.
-    m_stackingNode->updateLayerListsIfNeeded();
-    update3DTransformedDescendantStatus();
+    m_stackingNode->updateLayerListsIfNeeded();//m_stackingNode指向一个RenderLayerStackingNode对象。这个对象描述了当前正在处理的Render Layer所在的Stacking Context，调用它的updateLayerListsIfNeeded更新它所描述的Stacking Context所包含的Render layer的层次关系，以便接下来可以按照它们的z轴位置进行Hit test
+    update3DTransformedDescendantStatus();//检查当前正在处理的Render Layer的子Render Layer是否设置了3D。如果设置了，那么RenderLayer的成员变量m_has3DTransformedDescendant被设置为true。3D变换使得Hit Test不能简单按照原来Z-index的大小进行Hit test
 
     RefPtr<HitTestingTransformState> localTransformState;
     if (appliedTransform) {
@@ -2596,7 +2596,35 @@ RenderLayer* RenderLayer::hitTestLayer(RenderLayer* rootLayer, RenderLayer* cont
     double localZOffset = -std::numeric_limits<double>::infinity();
     double* zOffsetForDescendantsPtr = 0;
     double* zOffsetForContentsPtr = 0;
+/* RenderLayer类的成员函数hitTestLayer接下来根据两种不同的情况，采取两种不同的Hit Test方法：
 
+       1. 当前正在处理的Render Layer将CSS属性tranform-type设置为“preserve-3d”，或者它的子Render Layer设置了3D变换。在这种情况下，本地变量depthSortDescendants的值会被设置为true，并且另外两个本地变量zOffsetForDescendantsPtr和zOffsetForContentsPtr指向了一个类型为double的地址。这个地址包含的double值描述的是上一个被Hit的Render Layer在Touch Point处的Z轴位置。其中，本地变量zOffsetForContentsPtr描述的Z轴位置是给当前正在处理的Render Layer使用的，而本地变量zOffsetForDescendantsPtr描述的Z轴位置是给当前正在处理的Render Layer的子Render Layer使用的。在一个设置了3D变换的环境中，Z-Index值大的Render Layer不一定位于Z-Index值小的Render Layer的上面，需要进一步结合它们的3D变换情况进行判断。因此，就需要将上一个被Hit的Render Layer在Touch Point处的Z轴位置保存下来，用来与下一个也被Hit的Render Layer进行比较，以便得出正确的被Hit的Render Layer。
+
+       2. 当前正在处理的Render Layer没有将CSS属性tranform-type设置为“preserve-3d”，以及它的子Render Layer也没有设置3D变换。在这种情况下，本地变量depthSortDescendants的值会被设置为false。另外两个本地变量zOffsetForDescendantsPtr和zOffsetForContentsPtr，前者被设置为NULL，后者设置为参数zOffset的值。将本地变量zOffsetForDescendantsPtr设置为NULL，是因为当前正在处理的Render Layer的子Render Layer在做Hit Test时，不需要与其它的子Render Layer在Touch Point处进行Z轴位置。将zOffsetForContentsPtr的值指定为参数zOffset的值，是因为调用者可能会指定一个Z轴位置，要求当前正在处理的Render Layer在Touch Point处与其进行比较。
+
+       对第二种情况的处理比较简单，流程如下所示： 
+
+       1. 按照Z-Index从大到小的顺序对Z-Index值大于等于0的子Render Layer进行Hit Test。如果发生了Hit，那么停止Hit Test流程。
+
+       2. 对当前正在处理的Render Layer的Foreground层进行Hit Test。如果发生了Hit，那么停止Hit Test流程。
+
+       3. 按照Z-Index从大到小的顺序对Z-Index值小于0的子Render Layer进行Hit Test。如果发生了Hit，那么停止Hit Test流程。
+
+       4. 对当前正在处理的Render Layer关联的Render Object的Background层进行Hit Test。
+
+       对第一种情况的处理相对就会复杂一些，如下所示：
+
+       1. 对当前正在处理的Render Layer的所有子Render Layer，以及当前正在处理的Render Layer的Foreground层，都会一一进行Hit Test。在这个Hit Test过程中，所有被Hit的Render Layer，都会根据它们3D变换情况，检查它们在Touch Point处的Z轴位置。Z轴位置最大的Render Layer或者Render Object，将会选择用来接收Touch Event。
+
+       2. 如果所有子Render Layer和当前正在处理的Render Layer的Foreground都没有发生Hit，那么就会再对当前正在处理的Render Layer的Background层进行Hit Test。
+
+       注意，对于每一个子Render Layer，RenderLayer类的成员函数hitTestLayer就会调用另外一个成员函数hitTestChildren对分别对它们进行Hit Test。RenderLayer类的成员函数hitTestChildren又会调用hitTestLayer对每一个子Render Layer执行具体的Hit Test。
+
+       这意味着，RenderLayer类的成员函数hitTestLayer会被递归调用来对Render Layer Tree中的每一个Render Layer进行Hit Test。当前正在处理的Render Layer是否被Hit，RenderLayer类的成员函数hitTestLayer是通过调用两次成员函数hitTestContentsForFragments进行检查。第一次调用是确定当前正在处理的Render Layer的Foreground层是否发生了Hit Test。第二次调用是确定当前正在处理的Render Layer的Background层是否发生了Hit Test。
+
+        一旦检查当前正在处理的Render Layer发生了Hit，那么RenderLayer类的成员函数hitTestLayer还需要调用另外一个成员函数isHitCandidate将它在Touch Point处的Z轴位置与本地变量zOffsetForContentsPtr描述的Z轴位置（上一个被Hit的Render Layer在Touch Point的Z轴位置）进行比较。比较后如果发现当前正在处理的Render Layer在Touch Point处的Z轴位置较大，那么才会认为它是被Hit的Render Layer。
+
+       接下来我们就继续分析RenderLayer类的成员函数hitTestContentsForFragments的实现，以便可以了解一个Render Layer在什么情况会被认为是发生了Hit*/
     bool depthSortDescendants = false;
     if (preserves3D()) {
         depthSortDescendants = true;
@@ -2689,7 +2717,7 @@ RenderLayer* RenderLayer::hitTestLayer(RenderLayer* rootLayer, RenderLayer* cont
 
     return 0;
 }
-
+//Render Layer是按Fragment进行划分的
 bool RenderLayer::hitTestContentsForFragments(const LayerFragments& layerFragments, const HitTestRequest& request, HitTestResult& result,
     const HitTestLocation& hitTestLocation, HitTestFilter hitTestFilter, bool& insideClipRect) const
 {
@@ -2702,7 +2730,7 @@ bool RenderLayer::hitTestContentsForFragments(const LayerFragments& layerFragmen
             || (hitTestFilter == HitTestDescendants && !fragment.foregroundRect.intersects(hitTestLocation)))
             continue;
         insideClipRect = true;
-        if (hitTestContents(request, result, fragment.layerBounds, hitTestLocation, hitTestFilter))
+        if (hitTestContents(request, result, fragment.layerBounds, hitTestLocation, hitTestFilter))//对每一个Fragment进行Hit Test，只要其中一个Fragment发生了Hit，那么就会认为它所在的Render Layer发生了Hit
             return true;
     }
 
@@ -2779,7 +2807,7 @@ RenderLayer* RenderLayer::hitTestLayerByApplyingTransform(RenderLayer* rootLayer
 bool RenderLayer::hitTestContents(const HitTestRequest& request, HitTestResult& result, const LayoutRect& layerBounds, const HitTestLocation& hitTestLocation, HitTestFilter hitTestFilter) const
 {
     ASSERT(isSelfPaintingLayer() || hasSelfPaintingLayerDescendant());
-
+//renderer()获得一个Render Object.这个Render Object是当前正在处理的Render Layer，这样就从Render Layer Tree转移到Render Object Tree进行Hit Test
     if (!renderer()->hitTest(request, result, hitTestLocation, toLayoutPoint(layerBounds.location() - renderBoxLocation()), hitTestFilter)) {
         // It's wrong to set innerNode, but then claim that you didn't hit anything, unless it is
         // a rect-based test.
@@ -3254,10 +3282,10 @@ GraphicsLayer* RenderLayer::graphicsLayerBackingForScrolling() const
     }
 }
 
-CompositedLayerMapping* RenderLayer::ensureCompositedLayerMapping()//ΪRender Layer����һ��Composited Layer Mapping
+CompositedLayerMapping* RenderLayer::ensureCompositedLayerMapping()//ÎªRender Layer´´½¨Ò»¸öComposited Layer Mapping
 {
     if (!m_compositedLayerMapping) {
-        m_compositedLayerMapping = adoptPtr(new CompositedLayerMapping(*this));//�����û��������Ҫ���ȴ���
+        m_compositedLayerMapping = adoptPtr(new CompositedLayerMapping(*this));//Èç¹û»¹Ã»´´½¨ÔòÐèÒªÊ×ÏÈ´´½¨
         m_compositedLayerMapping->setNeedsGraphicsLayerUpdate(GraphicsLayerUpdateSubtree);
 
         updateOrRemoveFilterEffectRenderer();

@@ -126,8 +126,8 @@ TouchEvent* TouchEventDispatchMediator::event() const
 
 bool TouchEventDispatchMediator::dispatchEvent(EventDispatcher* dispatcher) const
 {
-    event()->eventPath().adjustForTouchEvent(dispatcher->node(), *event());
-    return dispatcher->dispatch();
+    event()->eventPath().adjustForTouchEvent(dispatcher->node(), *event());//event获得一个TouchEvent对象，eventPath获得一个EventPath对象。这个对象描述的是当前发生的Touch Event的分发路径。最后调用adjustForTouchEvent调整Touch Event分发路径中的Shadow Dom的TOuch List。
+    return dispatcher->dispatch();//调用EventDispatch的dispatch函数。
 }
 
 } // namespace blink

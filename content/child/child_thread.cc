@@ -488,7 +488,7 @@ bool ChildThread::OnMessageReceived(const IPC::Message& msg) {
   if (msg.routing_id() == MSG_ROUTING_CONTROL)
     return OnControlMessageReceived(msg);
 
-  return router_.OnMessageReceived(msg);
+  return router_.OnMessageReceived(msg);//首先检测是否消息是否需要自己处理，如果不处理就分发给注册在它里面的Route进行处理
 }
 
 bool ChildThread::OnControlMessageReceived(const IPC::Message& msg) {

@@ -168,7 +168,7 @@ void HitTestResult::setInnerNode(Node* n)
     m_innerPossiblyPseudoNode = n;
     if (n && n->isPseudoElement())
         n = n->parentOrShadowHostNode();
-    m_innerNode = n;
+    m_innerNode = n;//将HTML元素保存在m_innerNode中。这个元素可通过HitTestResult的innerNode获得。这一步完成后WebKit就通过网页的Render layer tee和Render Object tree最终在Dom Tree中找到Target Node，这个Target Node负责接收和处理当前发生的Touch Event
 }
 
 void HitTestResult::setInnerNonSharedNode(Node* n)

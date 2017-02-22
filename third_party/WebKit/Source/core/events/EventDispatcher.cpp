@@ -46,8 +46,8 @@ bool EventDispatcher::dispatchEvent(Node* node, PassRefPtrWillBeRawPtr<EventDisp
     ASSERT(!EventDispatchForbiddenScope::isEventDispatchForbidden());
     if (!mediator->event())
         return true;
-    EventDispatcher dispatcher(node, mediator->event());
-    return mediator->dispatchEvent(&dispatcher);
+    EventDispatcher dispatcher(node, mediator->event());//从TouchEventDispatcherMediator对象中取出封装的Touch Event，并将该Touch Event封装在EventDispatcher
+    return mediator->dispatchEvent(&dispatcher);//调用TouchEventDispatcherMediator对象的dispatchEvent
 }
 
 EventDispatcher::EventDispatcher(Node* node, PassRefPtrWillBeRawPtr<Event> event)
@@ -122,6 +122,43 @@ bool EventDispatcher::dispatch()
     InspectorInstrumentationCookie cookie = InspectorInstrumentation::willDispatchEvent(&m_node->document(), *m_event, windowEventContext.window(), m_node.get(), m_event->eventPath());
 
     void* preDispatchEventHandlerResult;
+    //网页发生的一个Event,分为五个阶段进行分发处理：
+    //1. Pre Process
+    //2. Capture
+    //3. Target
+    //4. Bubble
+    //5. Post Process
+    /* 
+    我们通过一个例子说明这五个阶段的处理过程，如下所示：
+    <html>  
+        <body>  
+            <div id="div1">   
+                <div id="div2">  
+                    <div id="div3">  
+                    </div>  
+                </div>  
+            </div>  
+        </body>  
+    </html>  
+       假设在div3上发生了一个Touch Event。
+       在Pre Process阶段，WebKit会将Touch Event分发给div3的Pre Dispatch Event Handler处理，让div3有机会在DOM Event Handler处理Touch Event之前做一些事情，用来实现自己的行为。
+
+       在Capturing阶段，WebKit会将Touch Event依次分发给html -> body -> div1 -> div2的DOM Event Handler处理。
+
+       在Target阶段，WebKit会将Touch Event依次分发给div3的DOM Event Handler处理。。
+
+       在Bubbling阶段， WebKit会将Touch Event依次分发给div2 -> div1 -> body -> html的DOM Event Handler处理。
+
+       在Post Process阶段，WebKit会将Touch Event分发给div3的Post Dispatch Event Handler处理，让div3有机会在DOM Event Handler处理Touch Event之后做一些事情，与它的Pre Dispatch Event Handler相呼应。
+
+       此外，如果在前面4个阶段，Touch Event的preventDefault函数没有被调用，那么WebKit会将它依次分发给div3 -> div2 -> div1 -> body -> html的Default Event Handler处理。在这个过程中，如果某一个Node的Default Event Handler处理了该Touch Event，那么该Touch Event的分发过程就会中止。
+
+       其中，Pre Process和Post Process这两个阶段是一定会执行的。在Capturing、Target和Bubbling这三个阶段，如果某一个Node的DOM Event Handler调用了Touch Event的stopPropagation函数，那么它就会提前中止，后面的阶段也不会被执行。
+
+       Pre Dispatch Event Handler、Post Dispatch Event Handler和Default Event Handler是由WebKit实现的，DOM Event Handler可以通过JavaScript进行注册。在注册的时候，可以指定DOM Event Handler在Capturing阶段还是Bubbling阶段接收Event，但是不能同时在这两个阶段都接收。此外，注册Target Node上的DOM Event Handler没有Capturing阶段还是Bubbling阶段之分，如果Event在Capturing阶段没有被中止，那么它将在Target阶段接收。
+
+       明白了WebKit中的Event处理流程之后，接下来我们主要分析Target Node在Target阶段处理Touch Event的过程，也就是EventDispatcher类的成员函数dispatchEventAtTarget的实现
+       */
     if (dispatchEventPreProcess(preDispatchEventHandlerResult) == ContinueDispatching)
         if (dispatchEventAtCapturing(windowEventContext) == ContinueDispatching)
             if (dispatchEventAtTarget() == ContinueDispatching)
@@ -168,7 +205,7 @@ inline EventDispatchContinuation EventDispatcher::dispatchEventAtCapturing(Windo
 inline EventDispatchContinuation EventDispatcher::dispatchEventAtTarget()
 {
     m_event->setEventPhase(Event::AT_TARGET);
-    m_event->eventPath()[0].handleLocalEvents(m_event.get());
+    m_event->eventPath()[0].handleLocalEvents(m_event.get());//eventPath是一个Node Event Context列表，列表中的第一个Node Event Context描述的是当前发生的TOuch Event的target node的上下文信息。
     return m_event->propagationStopped() ? DoneDispatching : ContinueDispatching;
 }
 

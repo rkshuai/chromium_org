@@ -136,7 +136,7 @@ InputEventFilter::~InputEventFilter() {
 }
 
 void InputEventFilter::ForwardToMainListener(const IPC::Message& message) {
-  main_listener_->OnMessageReceived(message);
+  main_listener_->OnMessageReceived(message);//在处理手势时main_listener指的是RenderThreadImpl对象，这个对象描述的是render进程中的Render Thread，也就是Main Thread，RenderThreadImpl类的OnMessageReceived是从父类ChildThread继承下来的
 }
 
 void InputEventFilter::ForwardToHandler(const IPC::Message& message) {
@@ -183,7 +183,7 @@ void InputEventFilter::ForwardToHandler(const IPC::Message& message) {
         "InputEventFilter::ForwardToHandler::ForwardToMainListener",
         TRACE_EVENT_SCOPE_THREAD);
     IPC::Message new_msg = InputMsg_HandleInputEvent(
-        routing_id, event, latency_info, is_keyboard_shortcut);
+        routing_id, event, latency_info, is_keyboard_shortcut);//对于Compositor线程不处理的输入事件，将其封装在InputMsg_HandleInputEvent消息中，这个消息又会进一步封装在一个task中，并且发送给Main线程的消息队列。
     main_task_runner_->PostTask(
         FROM_HERE,
         base::Bind(&InputEventFilter::ForwardToMainListener, this, new_msg));

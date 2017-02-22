@@ -2569,6 +2569,8 @@ CompositingReasons RenderObject::additionalCompositingReasons() const
     return CompositingReasonNone;
 }
 
+/*一个Reder Layer关联的Render Object会进行两次Hit Test。第一次是针对该Render Object的Foreground进行Hit Test，这时候参数hitTestFilter的值等于HitTestDescendants。第二次是针对该Render Object的Background层进行Hit Test，这时候参数hitTestFilter的值等于HitTestSelf。
+无论是Foreground层，还是Background层，RenderObject类的成员函数hitTest都是通过调用另外一个成员函数nodeAtPoint进行Hit Test的。RenderObject类的成员函数nodeAtPoint是从来自Renderbox（？这里不清楚是为什么）*/
 bool RenderObject::hitTest(const HitTestRequest& request, HitTestResult& result, const HitTestLocation& locationInContainer, const LayoutPoint& accumulatedOffset, HitTestFilter hitTestFilter)
 {
     bool inside = false;
@@ -2597,17 +2599,18 @@ void RenderObject::updateHitTestResult(HitTestResult& result, const LayoutPoint&
     if (result.innerNode())
         return;
 
-    Node* node = this->node();
+    Node* node = this->node();//获得与当前正在处理的Render Object关联的HTML元素，也就是位于网页的DOM Tree中的一个Node,作为当前发生的Touch Event的Target Node.
 
     // If we hit the anonymous renderers inside generated content we should
     // actually hit the generated content so walk up to the PseudoElement.
+    //如果当前正在处理的Render Object没有关联一个HTML元素，那么就说明当前正在处理的Render Object是一个匿名的Render Object。这时候需要在网页的Render Object Tree中找到一个负责生成它的、非匿名的父Render Object，然后再获得与这个父Render Object关联的HTML元素，作为当前发生的Touch Event的Target Node。
     if (!node && parent() && parent()->isBeforeOrAfterContent()) {
         for (RenderObject* renderer = parent(); renderer && !node; renderer = renderer->parent())
             node = renderer->node();
     }
 
     if (node) {
-        result.setInnerNode(node);
+        result.setInnerNode(node);//将Target Node保存在参数result描述的一个HitTestResult对象中
         if (!result.innerNonSharedNode())
             result.setInnerNonSharedNode(node);
         result.setLocalPoint(point);

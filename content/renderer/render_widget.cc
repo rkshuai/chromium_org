@@ -483,7 +483,7 @@ bool RenderWidget::DoInit(int32 opener_id,
 
   bool result = RenderThread::Get()->Send(create_widget_message);
   if (result) {
-    RenderThread::Get()->AddRoute(routing_id_, this);
+    RenderThread::Get()->AddRoute(routing_id_, this);//RenderViewImpl对象在初始化的过程中，会通过父类RenderWidget的成员函数DoInit将自己注册为Render Thread中的一个Route？
     // Take a reference on behalf of the RenderThread.  This will be balanced
     // when we receive ViewMsg_Close.
     AddRef();
@@ -593,10 +593,10 @@ void RenderWidget::ScheduleCompositeWithForcedRedraw() {
   scheduleComposite();
 }
 
-bool RenderWidget::OnMessageReceived(const IPC::Message& message) {
+bool RenderWidget::OnMessageReceived(const IPC::Message& message) {//处理RenderTreadImpl类的成员函数OnMessageReceived接收到但是自己不处理的消息
   bool handled = true;
   IPC_BEGIN_MESSAGE_MAP(RenderWidget, message)
-    IPC_MESSAGE_HANDLER(InputMsg_HandleInputEvent, OnHandleInputEvent)
+    IPC_MESSAGE_HANDLER(InputMsg_HandleInputEvent, OnHandleInputEvent)//处理输入事件
     IPC_MESSAGE_HANDLER(InputMsg_CursorVisibilityChange,
                         OnCursorVisibilityChange)
     IPC_MESSAGE_HANDLER(InputMsg_ImeSetComposition, OnImeSetComposition)
@@ -1000,18 +1000,18 @@ void RenderWidget::OnHandleInputEvent(const blink::WebInputEvent* input_event,
   }
 
   bool prevent_default = false;
-  if (WebInputEvent::isMouseEventType(input_event->type)) {
+  if (WebInputEvent::isMouseEventType(input_event->type)) {//是否是一个鼠标事件
     const WebMouseEvent& mouse_event =
         *static_cast<const WebMouseEvent*>(input_event);
     TRACE_EVENT2("renderer", "HandleMouseMove",
                  "x", mouse_event.x, "y", mouse_event.y);
     context_menu_source_type_ = ui::MENU_SOURCE_MOUSE;
-    prevent_default = WillHandleMouseEvent(mouse_event);
+    prevent_default = WillHandleMouseEvent(mouse_event);//询问RenderWidget类是否要对它进行处理，如果处理，那么prevent_default=true
   }
 
-  if (WebInputEvent::isKeyboardEventType(input_event->type)) {
+  if (WebInputEvent::isKeyboardEventType(input_event->type)) {//检查输入事件是否是一个键盘事件
     context_menu_source_type_ = ui::MENU_SOURCE_KEYBOARD;
-#if defined(OS_ANDROID)
+#if defined(OS_ANDROID)//只针对Android平台，因为只有Android平台才有DPAD键
     // The DPAD_CENTER key on Android has a dual semantic: (1) in the general
     // case it should behave like a select key (i.e. causing a click if a button
     // is focused). However, if a text field is focused (2), its intended
@@ -1024,35 +1024,50 @@ void RenderWidget::OnHandleInputEvent(const blink::WebInputEvent* input_event,
     const WebKeyboardEvent& key_event =
         *static_cast<const WebKeyboardEvent*>(input_event);
     if (key_event.nativeKeyCode == AKEYCODE_DPAD_CENTER &&
-        GetTextInputType() != ui::TEXT_INPUT_TYPE_NONE) {
+        GetTextInputType() != ui::TEXT_INPUT_TYPE_NONE) {//如果是一个DPAD键盘事件并且获得焦点的是一个Input Text控件，那么就调用OnShowImeIfNeeded弹出输入法
       OnShowImeIfNeeded();
       prevent_default = true;
     }
+
 #endif
   }
 
-  if (WebInputEvent::isGestureEventType(input_event->type)) {
+  if (WebInputEvent::isGestureEventType(input_event->type)) {//是否是一个手势操作
     const WebGestureEvent& gesture_event =
         *static_cast<const WebGestureEvent*>(input_event);
     context_menu_source_type_ = ui::MENU_SOURCE_TOUCH;
-    prevent_default = prevent_default || WillHandleGestureEvent(gesture_event);
+    prevent_default = prevent_default || WillHandleGestureEvent(gesture_event);//是否对它进行处理。如果处理，那么prevent_default=true
   }
-
+    //但是RenderWidget类的WillHandleGestureEvent和WillHandleMouseEvent返回值都是false，这表明RenderWidget类不会处理鼠标和手势操作两种输入事件
   bool processed = prevent_default;
-  if (input_event->type != WebInputEvent::Char || !suppress_next_char_events_) {
+  if (input_event->type != WebInputEvent::Char || !suppress_next_char_events_) {//判断是否是键盘字符输入事件（不是的话才通过）
     suppress_next_char_events_ = false;
-    if (!processed && webwidget_)
-      processed = webwidget_->handleInputEvent(*input_event);
+    if (!processed && webwidget_)//RenderWidget不对它进行处理（不处理）,从Frame Tree那章我们可以知道webwidget_指向的是一个WebViewImpl对象，因此下一步就可以分析WebViewImpl对象的handlerInputEvent即可
+      processed = webwidget_->handleInputEvent(*input_event);//如果RenderWidget不处理，则将非键盘字符输入事件分发给WebKit处理
   }
 
   // If this RawKeyDown event corresponds to a browser keyboard shortcut and
   // it's not processed by webkit, then we need to suppress the upcoming Char
   // events.
-  if (!processed && is_keyboard_shortcut)
-    suppress_next_char_events_ = true;
+  if (!processed && is_keyboard_shortcut)//如果WebKit不进行处理(processed==false)，并且它被设置为浏览器的快捷键（is_keyboard_shortcut==true）
+    suppress_next_char_events_ = true;//那么下一个键盘字符输入事件也不会再分发给Webkit处理了，因为下一个键盘字符输入事件将会作为浏览器快捷键的另外一部分。
 
+//将参数input_event描述的输入事件分发给WebKit之后，RenderWidget类的成员函数OnHandleInputEvent考虑是否需要给Browser进程发送一个ACK。
+//因为Browser进程收到Render进程对上一个输入事件的ACK之后，才会给它分发下一个输入事件。
+//因此，Render进程是否给Browser进程发送ACK，可以用来控制Browser进程分发输入事件给Render进程的节奏。
   InputEventAckState ack_result = processed ?
       INPUT_EVENT_ACK_STATE_CONSUMED : INPUT_EVENT_ACK_STATE_NOT_CONSUMED;
+//       有三种类型的输入事件是需要控制分发节奏的：鼠标移动、鼠标中键滚动和触摸事件
+//。这三类输入事件都有一个特点，它们会连续大量地输入。每一次输入Render进程都需要对它们作出响应，也就是对网页进行处理。
+//如果它们发生得太过频繁，那么就会造成Render进程的负担很重。因此，对于这三类输入事件，
+//RenderWidget类的成员函数OnHandleInputEvent并不会都马上对它们进行ACK。这里有一点需要注意，对于触摸事件，
+//只有WebKit没有对它进行处理，那么RenderWidget类的成员函数OnHandleInputEvent会马上对它进行ACK。
+//这是因为这个触摸事件和接下来发生的触摸事件，可能会触发手势操作，例如滑动手势和捏合手势。
+//这些手势操作必须要迅速进行处理，否则的话，用户就会觉得浏览器没有反应了。
+//什么情况下不会马上进行ACK呢？如果网页的当前帧请求执行了一次Commit操作，也就是请求了重新绘制网页的CC Layer Tree，但是网页的CC Layer Tree还没有绘制完成，
+//并且也没有同步到CC Pending Layer Tree，那么就不会马上进行ACK。这个ACK会被缓存在RenderWidget类的成员变量pending_input_event_ack_中。
+//等到网页的CC Layer Tree重新绘制完成并且同步到CC Pending Layer Tree之后，被缓存的ACK才会发送给Browser进程。之所以要这样做，
+//是因为Main线程在重新绘制网页的CC Layer Tree的时候，任务是相当重的，这时候不宜再分发新的输入事件给它处理。
   if (!processed &&  input_event->type == WebInputEvent::TouchStart) {
     const WebTouchEvent& touch_event =
         *static_cast<const WebTouchEvent*>(input_event);
@@ -1078,6 +1093,10 @@ void RenderWidget::OnHandleInputEvent(const blink::WebInputEvent* input_event,
 
   // If we don't have a fast and accurate HighResNow, we assume the input
   // handlers are heavy and rate limit them.
+  //此外，如果平台实现了高精度时钟，那么RenderWidget类的成员函数OnHandleInputEvent也不一定要等到网页的CC Layer Tree
+  //重新绘制完成并且同步到CC Pending Layer Tree之后，才将缓存的ACK才会发送给Browser进程。如果已经过去了一段时间，
+  //网页的CC Layer Tree还没有绘制完成，也没有同步到CC Pending Layer Tree，那么RenderWidget类的成员函数OnHandleInputEvent就会马上给Browser进程发送一个ACK。
+  //这个时间被设置为kInputHandlingTimeThrottlingThresholdMicroseconds（4166）微秒，大约等于1/4帧时间（假设一帧时间为16毫秒）。
   bool rate_limiting_wanted = true;
   if (base::TimeTicks::IsHighResNowFastAndReliable()) {
       base::TimeTicks end_time = base::TimeTicks::HighResNow();
@@ -1092,16 +1111,20 @@ void RenderWidget::OnHandleInputEvent(const blink::WebInputEvent* input_event,
   // Note that we can't use handling_event_type_ here since it will be overriden
   // by reentrant calls for events after the paused one.
   bool no_ack = ignore_ack_for_mouse_move_from_debugger_ &&
-      input_event->type == WebInputEvent::MouseMove;
+      input_event->type == WebInputEvent::MouseMove;//如果浏览器连上了Debugger，并且Debugger希望不要对鼠标移动事件进行ACK，
+                                                    //那么鼠标移动事件在任何情况下，都不会进行ACK。
   if (!WebInputEventTraits::IgnoresAckDisposition(*input_event) && !no_ack) {
     InputHostMsg_HandleInputEvent_ACK_Params ack;
     ack.type = input_event->type;
     ack.state = ack_result;
     ack.latency = swap_latency_info;
     scoped_ptr<IPC::Message> response(
-        new InputHostMsg_HandleInputEvent_ACK(routing_id_, ack));
+        new InputHostMsg_HandleInputEvent_ACK(routing_id_, ack));//Browser进程是通过类型为InputHostMsg_HandleInputEvent的消息向Render进程分发输入事件的。
+        //相应地，Render进程通过向Browser进程发送类型为InputHostMsg_HandleInputEvent_ACK的消息对输入事件进行ACK。
     if (rate_limiting_wanted && event_type_can_be_rate_limited &&
-        frame_pending && !is_hidden_) {
+        frame_pending && !is_hidden_) {//(is_hidden_) 还有一种特殊情况，造成RenderWidget类的成员函数OnHandleInputEvent不会缓存输入事件的ACK，
+          //那就是网页当前不可见。对于不可见的网页，Main线程不需要对它们进行处理，因为处理了也是白处理（用户看不到）。
+          //因此，可以认为此时分发给网页的任何输入都在瞬间完成，于是就可以安全地将它们ACK给Browser进程，不用担心Main线程的负载问题。
       // We want to rate limit the input events in this case, so we'll wait for
       // painting to finish before ACKing this message.
       TRACE_EVENT_INSTANT0("renderer",

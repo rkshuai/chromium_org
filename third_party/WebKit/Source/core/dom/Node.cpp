@@ -2095,7 +2095,7 @@ void Node::handleLocalEvents(Event* event)
     if (isDisabledFormControl(this) && event->isMouseEvent())
         return;
 
-    fireEventListeners(event);
+    fireEventListeners(event);//将当前发生的Touch Event分发给Target Node的DOM Event Handler处理，而它又是从父类EventTarget继承下来
 }
 
 void Node::dispatchScopedEvent(PassRefPtrWillBeRawPtr<Event> event)
@@ -2160,7 +2160,7 @@ bool Node::dispatchGestureEvent(const PlatformGestureEvent& event)
 
 bool Node::dispatchTouchEvent(PassRefPtrWillBeRawPtr<TouchEvent> event)
 {
-    return EventDispatcher::dispatchEvent(this, TouchEventDispatchMediator::create(event));
+    return EventDispatcher::dispatchEvent(this, TouchEventDispatchMediator::create(event));//将Touch Event封装在TouchEventDispatcherMediator对象中
 }
 
 void Node::dispatchSimulatedClick(Event* underlyingEvent, SimulatedClickMouseEventOptions eventOptions)

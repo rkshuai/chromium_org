@@ -2087,7 +2087,7 @@ bool WebViewImpl::handleInputEvent(const WebInputEvent& inputEvent)
         return true;
     }
 
-    return PageWidgetDelegate::handleInputEvent(m_page.get(), *this, inputEvent);
+    return PageWidgetDelegate::handleInputEvent(m_page.get(), *this, inputEvent);//调用它进行处理
 }
 
 void WebViewImpl::setCursorVisibilityState(bool isVisible)

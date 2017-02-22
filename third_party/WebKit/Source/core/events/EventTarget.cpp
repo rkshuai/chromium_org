@@ -348,7 +348,7 @@ void EventTarget::fireEventListeners(Event* event, EventTargetData* d, EventList
         InspectorInstrumentationCookie cookie = InspectorInstrumentation::willHandleEvent(this, event, registeredListener.listener.get(), registeredListener.useCapture);
         // To match Mozilla, the AT_TARGET phase fires both capturing and bubbling
         // event listeners, even though that violates some versions of the DOM spec.
-        registeredListener.listener->handleEvent(context, event);
+        registeredListener.listener->handleEvent(context, event);//这里的registeredListener.listener代表V8AbstractEventListener，因此最终会进入到JS引擎V8里面去执行。
         InspectorInstrumentation::didHandleEvent(cookie);
     }
     d->firingEventIterators->removeLast();
