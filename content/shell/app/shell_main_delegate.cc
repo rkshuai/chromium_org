@@ -246,8 +246,8 @@ int ShellMainDelegate::RunProcess(
   scoped_ptr<BrowserMainRunner> browser_runner_;
 #endif
 
-  browser_runner_.reset(BrowserMainRunner::Create());
-  return ShellBrowserMain(main_function_params, browser_runner_);
+  browser_runner_.reset(BrowserMainRunner::Create());//创建BrowserMainRunner
+  return ShellBrowserMain(main_function_params, browser_runner_);//创建ShellBrowserMain
 }
 
 #if defined(OS_POSIX) && !defined(OS_ANDROID) && !defined(OS_MACOSX)

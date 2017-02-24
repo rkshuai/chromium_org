@@ -150,7 +150,7 @@ public class BrowserStartupController {
             prepareToStartBrowserProcess(false);
 
             setAsynchronousStartup(true);
-            if (contentStart() > 0) {
+            if (contentStart() > 0) {//启动content层
                 // Failed. The callbacks may not have run, so run them.
                 enqueueCallbackExecution(STARTUP_FAILURE, NOT_ALREADY_STARTED);
             }

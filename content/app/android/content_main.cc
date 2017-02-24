@@ -33,6 +33,13 @@ static void InitApplicationContext(JNIEnv* env, jclass clazz, jobject context) {
   base::android::InitApplicationContext(env, scoped_context);
 }
 
+/*主要做了下面几件事：
+
+1.使用前面创建和设置的ShellMainDelegate初始化g_content_main_delegate，并初始化结构体ContentMainParams params的成员变量delegate。
+
+2.创建并初始化Class ContentMainRunner(content/app/content_main_runner.cc)的实例g_content_runner，初始化函数Initialize(...)参数正是前面创建的params。
+
+3.运行g_content_runner(ContentMainRunnerImpl)*/
 static jint Start(JNIEnv* env, jclass clazz) {
   TRACE_EVENT0("startup", "content::Start");
 
@@ -43,7 +50,7 @@ static jint Start(JNIEnv* env, jclass clazz) {
   if (!g_content_runner.Get().get()) {
     ContentMainParams params(g_content_main_delegate.Get().get());
     g_content_runner.Get().reset(ContentMainRunner::Create());
-    g_content_runner.Get()->Initialize(params);
+    g_content_runner.Get()->Initialize(params);//初始化ContentMainRunnerImpl对象
   }
   return g_content_runner.Get()->Run();
 }

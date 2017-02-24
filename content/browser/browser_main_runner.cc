@@ -164,17 +164,17 @@ class BrowserMainRunnerImpl : public BrowserMainRunner {
       ole_initializer_.reset(new ui::ScopedOleInitializer);
 #endif  // OS_WIN
 
-      main_loop_.reset(new BrowserMainLoop(parameters));
+      main_loop_.reset(new BrowserMainLoop(parameters));//创建BrowserMainLoop的实例
 
-      main_loop_->Init();
+      main_loop_->Init();//1
 
-      main_loop_->EarlyInitialization();
+      main_loop_->EarlyInitialization();//2
 
       // Must happen before we try to use a message loop or display any UI.
       if (!main_loop_->InitializeToolkit())
         return 1;
 
-      main_loop_->MainMessageLoopStart();
+      main_loop_->MainMessageLoopStart();//3
 
 // WARNING: If we get a WM_ENDSESSION, objects created on the stack here
 // are NOT deleted. If you need something to run during WM_ENDSESSION add it
@@ -190,7 +190,7 @@ class BrowserMainRunnerImpl : public BrowserMainRunner {
 #endif
       ui::InitializeInputMethod();
     }
-    main_loop_->CreateStartupTasks();
+    main_loop_->CreateStartupTasks();//4
     int result_code = main_loop_->GetResultCode();
     if (result_code > 0)
       return result_code;

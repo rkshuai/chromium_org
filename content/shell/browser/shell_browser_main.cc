@@ -168,7 +168,7 @@ int ShellBrowserMain(
 #endif
   }
 
-  int exit_code = main_runner->Initialize(parameters);
+  int exit_code = main_runner->Initialize(parameters);//调用BrowserMainRunner的Initialize
   DCHECK_LT(exit_code, 0)
       << "BrowserMainRunner::Initialize failed in ShellBrowserMain";
 

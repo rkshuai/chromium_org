@@ -23,7 +23,7 @@ int BrowserMain(const MainFunctionParams& parameters) {
   if (exit_code >= 0)
     return exit_code;
 
-  exit_code = main_runner->Run();
+  exit_code = main_runner->Run();//启动Browser进程
 
   main_runner->Shutdown();
 

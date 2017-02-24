@@ -184,7 +184,7 @@ public class LibraryLoader {
                             if (zipfile != null) {
                                 Linker.loadLibraryInZipFile(zipfile, library);
                             } else {
-                                Linker.loadLibrary(library);
+                                Linker.loadLibrary(library);//触发native层的JNI_onload
                             }
                         }
                     }

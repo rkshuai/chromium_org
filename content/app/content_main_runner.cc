@@ -240,6 +240,7 @@ static void InitializeStatsTable(const base::CommandLine& command_line) {
   }
 }
 
+//调用g_content_main_delegate的CreateContentBrowserClient、CreateContentPluginClient、CreateContentRendererClient和CreateContentUtilityClient，并初始化content_client的browser_、plugin_、renderer_和utility_
 class ContentClientInitializer {
  public:
   static void Set(const std::string& process_type,
@@ -383,7 +384,7 @@ int RunNamedProcessTypeMain(
     ContentMainDelegate* delegate) {
   static const MainFunction kMainFunctions[] = {
 #if !defined(CHROME_MULTIPLE_DLL_CHILD)
-    { "",                            BrowserMain },
+    { "",                            BrowserMain },//启动Browser进程
 #endif
 #if !defined(CHROME_MULTIPLE_DLL_BROWSER)
 #if defined(ENABLE_PLUGINS)
@@ -405,7 +406,7 @@ int RunNamedProcessTypeMain(
     if (process_type == kMainFunctions[i].name) {
       if (delegate) {
         int exit_code = delegate->RunProcess(process_type,
-            main_function_params);
+            main_function_params);//调用ShellMainDelegate::RunProcess，它会创建BrowserMainRunner
 #if defined(OS_ANDROID)
         // In Android's browser process, the negative exit code doesn't mean the
         // default behavior should be used as the UI message loop is managed by
@@ -607,7 +608,7 @@ class ContentMainRunnerImpl : public ContentMainRunner {
 #endif // !OS_ANDROID
 
     int exit_code = 0;
-    if (delegate_ && delegate_->BasicStartupComplete(&exit_code))
+    if (delegate_ && delegate_->BasicStartupComplete(&exit_code))//这里的delegate_就是g_content_main_delegate，它用来实例化ShellContentClient，在ShellContentClient中又会设置全局变量g_client
       return exit_code;
 
     completed_basic_startup_ = true;
@@ -766,7 +767,7 @@ class ContentMainRunnerImpl : public ContentMainRunner {
 #endif
 
 #if !defined(OS_IOS)
-    return RunNamedProcessTypeMain(process_type, main_params, delegate_);
+    return RunNamedProcessTypeMain(process_type, main_params, delegate_);//根据参数process_type启动不同的进程
 #else
     return 1;
 #endif

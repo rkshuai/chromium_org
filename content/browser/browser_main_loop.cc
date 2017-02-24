@@ -369,7 +369,7 @@ BrowserMainLoop::~BrowserMainLoop() {
 void BrowserMainLoop::Init() {
   TRACE_EVENT0("startup", "BrowserMainLoop::Init");
   parts_.reset(
-      GetContentClient()->browser()->CreateBrowserMainParts(parameters_));
+      GetContentClient()->browser()->CreateBrowserMainParts(parameters_));//GetCOntentClient获得content_client，browser获得browser_(ShellContentBorwserClient)，进而创建了ShellBrowserMainParts实例
 }
 
 // BrowserMainLoop stages ==================================================

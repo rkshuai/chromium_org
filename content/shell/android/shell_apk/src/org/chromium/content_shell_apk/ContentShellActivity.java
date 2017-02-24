@@ -41,11 +41,11 @@ public class ContentShellActivity extends Activity {
     private WindowAndroid mWindowAndroid;
 
     @Override
-    protected void onCreate(final Bundle savedInstanceState) {
+    protected void onCreate(final Bundle savedInstanceState) {//ContentShell App的启动从这里开始
         super.onCreate(savedInstanceState);
 
         // Initializing the command line must occur before loading the library.
-        if (!CommandLine.isInitialized()) {
+        if (!CommandLine.isInitialized()) {//初始化CommandLine，这里可以设置各种启动参数，比如singleprocess,GPU hardware accelertion等。可以参考这里http://peter.sh/experiments/chromium-command-line-switches/
             CommandLine.initFromFile(COMMAND_LINE_FILE);
             String[] commandLineParams = getCommandLineParamsFromIntent(getIntent());
             if (commandLineParams != null) {
@@ -56,7 +56,7 @@ public class ContentShellActivity extends Activity {
 
         DeviceUtils.addDeviceSpecificUserAgentSwitch(this);
         try {
-            LibraryLoader.ensureInitialized();
+            LibraryLoader.ensureInitialized();//加载和注册native的libraries
         } catch (ProcessInitException e) {
             Log.e(TAG, "ContentView initialization failed.", e);
             // Since the library failed to initialize nothing in the application
@@ -85,7 +85,7 @@ public class ContentShellActivity extends Activity {
             }
         } else {
             try {
-                BrowserStartupController.get(this).startBrowserProcessesAsync(
+                BrowserStartupController.get(this).startBrowserProcessesAsync(//异步启动和初始化Content模块，调用startBrowserProcessesAsync(…)会同时传入参数BrowserStartupController.StartupCallback，使得当Content模块初始化完成后，会调用ContentShellActivity类的成员函数finishInitialization(…)继续执行启动ContentShell APK的其他工作。startBrowserProcessesAsync(…)中会调用prepareToStartBrowserProcess(…)，同时new Runnable()作为参数传入，目的是在随后执行contentStart()。
                         new BrowserStartupController.StartupCallback() {
                             @Override
                             public void onSuccess(boolean alreadyStarted) {
