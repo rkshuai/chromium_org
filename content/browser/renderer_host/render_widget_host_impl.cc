@@ -159,7 +159,7 @@ RenderWidgetHostImpl::RenderWidgetHostImpl(RenderWidgetHostDelegate* delegate,
       renderer_initialized_(false),
       hung_renderer_delay_ms_(kHungRendererDelayMs),
       delegate_(delegate),
-      process_(process),
+      process_(process),//RenderProcessHostImpl对象保存在process_中，以后就可通过GetProcess获得该RenderProcessHostImpl对象
       routing_id_(routing_id),
       surface_id_(0),
       is_loading_(false),

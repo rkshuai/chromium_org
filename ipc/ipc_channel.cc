@@ -35,7 +35,7 @@ std::string Channel::GenerateUniqueRandomChannelID() {
   return base::StringPrintf("%d.%u.%d",
       process_id,
       g_last_id.GetNext(),
-      base::RandInt(0, std::numeric_limits<int32>::max()));
+      base::RandInt(0, std::numeric_limits<int32>::max()));//从这里可以看出创建UNIX Socket的名字由当前进程的PID、一个顺序数和一个随机数通过"."符号拼接而成
 }
 
 }  // namespace IPC

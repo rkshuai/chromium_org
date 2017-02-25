@@ -179,16 +179,16 @@ int ChannelPosix::global_pid_ = 0;
 
 ChannelPosix::ChannelPosix(const IPC::ChannelHandle& channel_handle,
                            Mode mode, Listener* listener)
-    : ChannelReader(listener),
+    : ChannelReader(listener),//用来读取从Render进程发送过来的IPC消息，并且将读取到的IPC消息发送给参数listener描述的ChannelProxy::Context对象
       mode_(mode),
       peer_pid_(base::kNullProcessId),
       is_blocked_on_write_(false),
       waiting_connect_(true),
       message_send_bytes_written_(0),
       server_listen_pipe_(-1),
-      pipe_(-1),
-      client_pipe_(-1),
-#if defined(IPC_USES_READWRITE)
+      pipe_(-1),//UNIX Socket的server端文件描述符
+      client_pipe_(-1),//UNIX Socket的Client端文件描述符
+#if defined(IPC_USES_READWRITE)//如果定义了宏IPC_USES_READWRITE，那么当发送的消息包含有文件描述符时，就会使用另外一个专用的UNIX Socket来传输文件描述符给对方
       fd_pipe_(-1),
       remote_fd_pipe_(-1),
 #endif  // IPC_USES_READWRITE
@@ -231,7 +231,9 @@ bool SocketPair(int* fd1, int* fd2) {
   return true;
 }
 
-bool ChannelPosix::CreatePipe(
+//Chromium为了能够统一地处理网页在独立Render进程和不在独立Render进程加载两种情况，会对后者进行一个抽象，即会假设后者也是在独立的Render进程中加载一样。这样，Browser进程在加载该网页时，同样会创建一个RenderProcess对象，不过该RenderProcess对象没有对应的一个真正的进程，对应的仅仅是Browser进程中的一个线程。也就是这时候，RenderPocessHost对象和RenderProcess对象执行的仅仅是进程内通信而已，不过它们仍然是按照进程间的通信规则进行，也就是通过IO线程来间接进行。不过，在进程内建立IPC通信通道和在进程间建立IPC通信通道的方式是不一样的。具体来说，就是在进程间建立IPC通信通道，需要将描述该通道的UNIX Socket的Client端文件描述符从Browser进程传递到Render进程，Render进程接收到该文件描述符之后，就会以kPrimaryIPCChannel为键值保存在Global Descriptors中。而在进程内建立IPC通信通道时，描述IPC通信通道的UNIX Socket的Client端文件描述符直接以UNIX Socket名称为键值，保存在一个Pipe Map中即可。
+
+bool ChannelPosix::CreatePipe(//开始创建IPC通信通道
     const IPC::ChannelHandle& channel_handle) {
   DCHECK(server_listen_pipe_ == -1 && pipe_ == -1);
 
@@ -344,7 +346,7 @@ bool ChannelPosix::Connect() {
   }
 
   bool did_connect = true;
-  if (server_listen_pipe_ != -1) {
+  if (server_listen_pipe_ != -1) {//没看懂
     // Watch the pipe for connections, and turn any connections into
     // active sockets.
     base::MessageLoopForIO::current()->WatchFileDescriptor(
@@ -354,7 +356,7 @@ bool ChannelPosix::Connect() {
         &server_listen_connection_watcher_,
         this);
   } else {
-    did_connect = AcceptConnection();
+    did_connect = AcceptConnection();//调用这个
   }
   return did_connect;
 }
@@ -715,17 +717,17 @@ void ChannelPosix::OnFileCanWriteWithoutBlocking(int fd) {
 
 bool ChannelPosix::AcceptConnection() {
   base::MessageLoopForIO::current()->WatchFileDescriptor(
-      pipe_, true, base::MessageLoopForIO::WATCH_READ, &read_watcher_, this);
-  QueueHelloMessage();
+      pipe_, true, base::MessageLoopForIO::WATCH_READ, &read_watcher_, this);//对pipe_描述的UNIX Socket进行监控
+  QueueHelloMessage();//创建一个Hello message，并且将改Message添加到内部的一个IPC消息队列去等待发送给对方进程。执行IPC的双方就是通过这个Hello Message进行握手的。具体来说，就是Server端和Client端进程建立好连接之后，由Client端发送一个Hello Message给Server端，Server端接收到该Hello Message之后，就认为双方已经准备就绪，可以进行IPC了。
 
   if (mode_ & MODE_CLIENT_FLAG) {
     // If we are a client we want to send a hello message out immediately.
     // In server mode we will send a hello message when we receive one from a
     // client.
     waiting_connect_ = false;
-    return ProcessOutgoingMessages();
+    return ProcessOutgoingMessages();//将前面创建的Hello Message发送给Server端
   } else if (mode_ & MODE_SERVER_FLAG) {
-    waiting_connect_ = true;
+    waiting_connect_ = true;//表示正在等待Client端发送一个hello message过来
     return true;
   } else {
     NOTREACHED();
@@ -1058,7 +1060,7 @@ base::ProcessId ChannelPosix::GetSelfPID() const {
 // static
 scoped_ptr<Channel> Channel::Create(
     const IPC::ChannelHandle &channel_handle, Mode mode, Listener* listener) {
-  return make_scoped_ptr(new ChannelPosix(
+  return make_scoped_ptr(new ChannelPosix(//创建ChannelPosix
       channel_handle, mode, listener)).PassAs<Channel>();
 }
 
@@ -1071,7 +1073,7 @@ std::string Channel::GenerateVerifiedChannelID(const std::string& prefix) {
   if (!id.empty())
     id.append(".");
 
-  return id.append(GenerateUniqueRandomChannelID());
+  return id.append(GenerateUniqueRandomChannelID());//生成唯一的随机名字
 }
 
 

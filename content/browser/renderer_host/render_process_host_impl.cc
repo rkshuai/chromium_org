@@ -549,7 +549,7 @@ void RenderProcessHostImpl::EnableSendQueue() {
 bool RenderProcessHostImpl::Init() {
   // calling Init() more than once does nothing, this makes it more convenient
   // for the view host which may not be sure in some cases
-  if (channel_)
+  if (channel_)//当它引用了一个IPC::ChannelProxy对象时，就表明已经为当前要加载的网页创建过Render进程了
     return true;
 
   base::CommandLine::StringType renderer_prefix;
@@ -577,8 +577,8 @@ bool RenderProcessHostImpl::Init() {
 
   // Setup the IPC channel.
   const std::string channel_id =
-      IPC::Channel::GenerateVerifiedChannelID(std::string());
-  channel_ = CreateChannelProxy(channel_id);
+      IPC::Channel::GenerateVerifiedChannelID(std::string());//创建UNIX Socket的名字
+  channel_ = CreateChannelProxy(channel_id);//创建用于执行IPC的Channel
 
   // Setup the Mojo channel.
   mojo_application_host_->Init();
@@ -586,9 +586,9 @@ bool RenderProcessHostImpl::Init() {
   // Call the embedder first so that their IPC filters have priority.
   GetContentClient()->browser()->RenderProcessWillLaunch(this);
 
-  CreateMessageFilters();
+  CreateMessageFilters();//创建一系列的Message Filter，用来过滤IPC消息
 
-  if (run_renderer_in_process()) {
+  if (run_renderer_in_process()) {//这种情况时所有网页都在Browser进程中加载，不单独创建Render进程.
     DCHECK(g_renderer_main_thread_factory);
     // Crank up a thread and run the initialization there.  With the way that
     // messages flow between the browser and renderer, this thread is required
@@ -596,7 +596,7 @@ bool RenderProcessHostImpl::Init() {
     // thread in the renderer process runs the WebKit code and can sometimes
     // make blocking calls to the UI thread (i.e. this thread), they need to run
     // on separate threads.
-    in_process_renderer_.reset(g_renderer_main_thread_factory(channel_id));
+    in_process_renderer_.reset(g_renderer_main_thread_factory(channel_id));//创建一个线程来渲染网页，这个线程由静态成员变量g_renderer_main_thread_factory描述的一个函数创建，它的类型为InProcessRendererThread。这个类继承了base::Thread类
 
     base::Thread::Options options;
 #if defined(OS_WIN) && !defined(OS_MACOSX)
@@ -607,15 +607,15 @@ bool RenderProcessHostImpl::Init() {
     // in-process plugins.
     options.message_loop_type = base::MessageLoop::TYPE_DEFAULT;
 #endif
-    in_process_renderer_->StartWithOptions(options);
+    in_process_renderer_->StartWithOptions(options);//运行新的线程,会调到InProcessRenderThread的Init函数中
 
-    g_in_process_thread = in_process_renderer_->message_loop();
+    g_in_process_thread = in_process_renderer_->message_loop();//获得线程的message Loop，这样就可向线程发送消息了。
 
     OnProcessLaunched();  // Fake a callback that the process is ready.
-  } else {
+  } else {//在单独的render进程中加载网页
     // Build command line for renderer.  We call AppendRendererCommandLine()
     // first so the process type argument will appear first.
-    base::CommandLine* cmd_line = new base::CommandLine(renderer_path);
+    base::CommandLine* cmd_line = new base::CommandLine(renderer_path);//创建一个命令行
     if (!renderer_prefix.empty())
       cmd_line->PrependWrapper(renderer_prefix);
     AppendRendererCommandLine(cmd_line);
@@ -628,7 +628,7 @@ bool RenderProcessHostImpl::Init() {
         new RendererSandboxedProcessLauncherDelegate(channel_.get()),
         cmd_line,
         GetID(),
-        this));
+        this));//以命令行和前面创建的IPC::ChannelProxy对象为参数创建一个ChildProcessLauncher对象,这个对象在创建的过程中会启动一个新的Render进程
 
     fast_shutdown_started_ = false;
   }

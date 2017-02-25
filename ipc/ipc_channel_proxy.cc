@@ -25,11 +25,11 @@ namespace IPC {
 ChannelProxy::Context::Context(
     Listener* listener,
     const scoped_refptr<base::SingleThreadTaskRunner>& ipc_task_runner)
-    : listener_task_runner_(base::ThreadTaskRunnerHandle::Get()),
-      listener_(listener),
-      ipc_task_runner_(ipc_task_runner),
+    : listener_task_runner_(base::ThreadTaskRunnerHandle::Get()),//指向SingleThreadTaskrunner对象，它实际上是当前线程的一个MessageLoopProxy对象，通过该对象可以向当前线程的消息队列发送消息，当前线程即为Browser进程的主线程
+      listener_(listener),//即为RenderProcessHostImpl对象，，以后正在创建的ChannleProxy::Context对象在IO线程中接收到Render进程发送过来的IPC消息后会转发给RenderProcessHostImpl对象处理，但不是直接在IO线程中进行处理，而是在listener_task_runner描述的线程中处理，即Browser进程的主线程处理。
+      ipc_task_runner_(ipc_task_runner),//这个也是指向SingleThreadTaskRunner对象，这个对象实际上是与Browser进程的IO线程关联的一个MessageLoopProxy对象。这个对象用来接收Render进程发送过来的IPC消息。因此Browser进程在IO线程中接收IPC消息
       channel_connected_called_(false),
-      message_filter_router_(new MessageFilterRouter()),
+      message_filter_router_(new MessageFilterRouter()),//指向一个messageFilterRouter对象，用来过滤IPC消息
       peer_pid_(base::kNullProcessId) {
   DCHECK(ipc_task_runner_.get());
   // The Listener thread where Messages are handled must be a separate thread
@@ -53,7 +53,7 @@ void ChannelProxy::Context::ClearIPCTaskRunner() {
 void ChannelProxy::Context::CreateChannel(scoped_ptr<ChannelFactory> factory) {
   DCHECK(!channel_);
   channel_id_ = factory->GetName();
-  channel_ = factory->BuildChannel(this);
+  channel_ = factory->BuildChannel(this);//它最终会调用到ipc_channel_posix.cc中的Create
 }
 
 bool ChannelProxy::Context::TryFilters(const Message& message) {
@@ -127,7 +127,7 @@ void ChannelProxy::Context::OnChannelOpened() {
   // will be released when we are closed.
   AddRef();
 
-  if (!channel_->Connect()) {
+  if (!channel_->Connect()) {//channel_指向ChannelPosix对象，调用Connect将它描述的IPC通信通道交给当前进程的IO线程进行监控
     OnChannelError();
     return;
   }
@@ -306,13 +306,13 @@ void ChannelProxy::Context::OnDispatchBadMessage(const Message& message) {
 //-----------------------------------------------------------------------------
 
 // static
-scoped_ptr<ChannelProxy> ChannelProxy::Create(
+scoped_ptr<ChannelProxy> ChannelProxy::Create(//创建一个Channel
     const IPC::ChannelHandle& channel_handle,
     Channel::Mode mode,
     Listener* listener,
     const scoped_refptr<base::SingleThreadTaskRunner>& ipc_task_runner) {
-  scoped_ptr<ChannelProxy> channel(new ChannelProxy(listener, ipc_task_runner));
-  channel->Init(channel_handle, mode, true);
+  scoped_ptr<ChannelProxy> channel(new ChannelProxy(listener, ipc_task_runner));//创建一个ChannelProxy对象
+  channel->Init(channel_handle, mode, true);//执行初始化工作
   return channel.Pass();
 }
 
@@ -334,7 +334,7 @@ ChannelProxy::ChannelProxy(Context* context)
 ChannelProxy::ChannelProxy(
     Listener* listener,
     const scoped_refptr<base::SingleThreadTaskRunner>& ipc_task_runner)
-    : context_(new Context(listener, ipc_task_runner)), did_init_(false) {
+    : context_(new Context(listener, ipc_task_runner)),did_init_(false) {//创建一个ChannelProxy::Context对象
 }
 
 ChannelProxy::~ChannelProxy() {
@@ -343,9 +343,9 @@ ChannelProxy::~ChannelProxy() {
   Close();
 }
 
-void ChannelProxy::Init(const IPC::ChannelHandle& channel_handle,
-                        Channel::Mode mode,
-                        bool create_pipe_now) {
+void ChannelProxy::Init(const IPC::ChannelHandle& channel_handle,//UNIX socket名称
+                        Channel::Mode mode,//IPC::Channel::MODE_SERVER
+                        bool create_pipe_now/*true*/) {
 #if defined(OS_POSIX)
   // When we are creating a server on POSIX, we need its file descriptor
   // to be created immediately so that it can be accessed and passed
@@ -369,14 +369,15 @@ void ChannelProxy::Init(scoped_ptr<ChannelFactory> factory,
     // low-level pipe so that the client can connect.  Without creating
     // the pipe immediately, it is possible for a listener to attempt
     // to connect and get an error since the pipe doesn't exist yet.
-    context_->CreateChannel(factory.Pass());
-  } else {
+    context_->CreateChannel(factory.Pass());//在当前线程中创建一个IPC通信通道
+  } else {//在IO线程中创建IPC通信通道
     context_->ipc_task_runner()->PostTask(
         FROM_HERE, base::Bind(&Context::CreateChannel,
                               context_.get(), Passed(factory.Pass())));
   }
 
   // complete initialization on the background thread
+  //当创建好一个IPC通信通道之后，还会向当前进程的IO线程的消息队列发送一个消息，该消息绑定的是ChannelProxy::Context类的成员函数OnChannelOpened
   context_->ipc_task_runner()->PostTask(
       FROM_HERE, base::Bind(&Context::OnChannelOpened, context_.get()));
 

@@ -76,19 +76,21 @@ RenderProcessHost* SiteInstanceImpl::GetProcess() {
   // See crbug.com/43448.
 
   // Create a new process if ours went away or was reused.
-  if (!process_) {
+  if (!process_) {//当它的值等于NULL的时候，就表示Chromium还没有为当前正在处理的一个SiteInstanceImpl对象创建过Render进程，这时候就需要创建一个RenderProcessHostImpl对象
     BrowserContext* browser_context = browsing_instance_->browser_context();
 
     // If we should use process-per-site mode (either in general or for the
     // given site), then look for an existing RenderProcessHost for the site.
     bool use_process_per_site = has_site_ &&
         RenderProcessHost::ShouldUseProcessPerSite(browser_context, site_);
+    //如果Chromium启动时指定同一个网站的所有网页都在同一个Render进程中加载，即use_process_per_site=true，这时调用GetProcessHostForSite检查之前是否已经为当前正在处理的SiteInstanceImpl对象描述的网站创建过Render进程。如果已经创建过，那么就可以直接获得一个对应的RenderProcessHostImpl对象
     if (use_process_per_site) {
       process_ = RenderProcessHostImpl::GetProcessHostForSite(browser_context,
                                                               site_);
     }
 
     // If not (or if none found), see if we should reuse an existing process.
+    //如果按照上面方法没找到，这时本来应该创建一个Render进程，也就是RenderProcessHostImpl对象，但是由于当前创建的Render进程已经超出预设的最大数量了，这时就要复用前面已经启动的Render进程，即使这个Render进程加载的是另一个网站的内容。
     if (!process_ && RenderProcessHostImpl::ShouldTryToUseExistingProcessHost(
             browser_context, site_)) {
       process_ = RenderProcessHostImpl::GetExistingProcessHost(browser_context,
@@ -96,11 +98,12 @@ RenderProcessHost* SiteInstanceImpl::GetProcess() {
     }
 
     // Otherwise (or if that fails), create a new one.
+    //如果上面两个条件都不满足，那么真的需要创建一个RenderProcessHostImpl对象了。
     if (!process_) {
-      if (g_render_process_host_factory_) {
+      if (g_render_process_host_factory_) {//如果g_render_process_host_factory_指向一个RenderProcessHostFactory对象，那么调用CreateRenderProcessHost创建一个从RenderProcessHost类继承下来的子类对象
         process_ = g_render_process_host_factory_->CreateRenderProcessHost(
             browser_context, this);
-      } else {
+      } else {//否则创建一个RenderProcessHostImpl对象
         StoragePartitionImpl* partition =
             static_cast<StoragePartitionImpl*>(
                 BrowserContext::GetStoragePartition(browser_context, this));

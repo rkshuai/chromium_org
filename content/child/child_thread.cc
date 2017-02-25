@@ -237,7 +237,7 @@ scoped_ptr<IPC::SyncChannel> ChildThread::CreateChannel(bool use_mojo_channel) {
   }
 
   VLOG(1) << "Mojo is disabled on child";
-  return IPC::SyncChannel::Create(
+  return IPC::SyncChannel::Create(//创建client端ipc通道
       channel_name_,
       IPC::Channel::MODE_CLIENT,
       this,
@@ -258,7 +258,7 @@ void ChildThread::Init(const Options& options) {
   // the logger, and the logger does not like being created on the IO thread.
   IPC::Logging::GetInstance();
 #endif
-  channel_ = CreateChannel(options.use_mojo_channel);
+  channel_ = CreateChannel(options.use_mojo_channel);//创建ipc通道
 #ifdef IPC_MESSAGE_LOG_ENABLED
   if (!in_browser_process_)
     IPC::Logging::GetInstance()->SetIPCSender(this);

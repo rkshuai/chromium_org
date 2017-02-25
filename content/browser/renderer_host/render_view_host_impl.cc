@@ -169,7 +169,7 @@ RenderViewHostImpl* RenderViewHostImpl::FromID(int render_process_id,
 }
 
 RenderViewHostImpl::RenderViewHostImpl(
-    SiteInstance* instance,
+    SiteInstance* instance,//它指向的实际上是一个SiteInstanceImpl对象，用来描述Chromium当前加载的一个网站实例。
     RenderViewHostDelegate* delegate,
     RenderWidgetHostDelegate* widget_delegate,
     int routing_id,
@@ -177,7 +177,7 @@ RenderViewHostImpl::RenderViewHostImpl(
     bool swapped_out,
     bool hidden)
     : RenderWidgetHostImpl(widget_delegate,
-                           instance->GetProcess(),
+                           instance->GetProcess(),//获得一个RenderProcesImpl对象
                            routing_id,
                            hidden),
       frames_ref_count_(0),
@@ -264,7 +264,7 @@ bool RenderViewHostImpl::CreateRenderView(
   // initialized it) or may not (we have our own process or the old process
   // crashed) have been initialized. Calling Init multiple times will be
   // ignored, so this is safe.
-  if (!GetProcess()->Init())
+  if (!GetProcess()->Init())//首先调用GetProcess获得RenderProcessHostImpl对象，接着调用它的Init函数
     return false;
   DCHECK(GetProcess()->HasConnection());
   DCHECK(GetProcess()->GetBrowserContext());

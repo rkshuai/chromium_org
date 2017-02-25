@@ -12,15 +12,15 @@ namespace content {
 
 InProcessRendererThread::InProcessRendererThread(const std::string& channel_id)
     : Thread("Chrome_InProcRendererThread"), channel_id_(channel_id) {
-}
+}//调用父类Thread的构造函数，并且将Unix Socket的名字存储在channel_id_中
 
 InProcessRendererThread::~InProcessRendererThread() {
   Stop();
 }
 
 void InProcessRendererThread::Init() {
-  render_process_.reset(new RenderProcessImpl());
-  new RenderThreadImpl(channel_id_);
+  render_process_.reset(new RenderProcessImpl());//这是一个假的Render进程，只是Browser进程中的一个线程
+  new RenderThreadImpl(channel_id_);//描述当前线程，在创建过程中会创建一个Client端的IPC通信通道
 }
 
 void InProcessRendererThread::CleanUp() {

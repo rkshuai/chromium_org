@@ -97,7 +97,7 @@ class ChildProcessLauncher::Context
             client_thread_id_,
             child_process_id,
             delegate,
-            cmd_line));
+            cmd_line));//调用BrowserThread类的静态成员函数PostTask向Browser进程的一个专门用来启动子进程的BrowserThread::PROCESS_LAUNCHER线程的消息队列发送一个任务，该任务绑定了ChildProcessLauncher::Context类的成员函数LaunchInternal。
   }
 
 #if defined(OS_ANDROID)
@@ -434,7 +434,7 @@ class ChildProcessLauncher::Context
 };
 
 
-ChildProcessLauncher::ChildProcessLauncher(
+ChildProcessLauncher::ChildProcessLauncher(//启动一个Render进程
     SandboxedProcessLauncherDelegate* delegate,
     base::CommandLine* cmd_line,
     int child_process_id,

@@ -392,7 +392,7 @@ RenderThreadImpl* RenderThreadImpl::current() {
 // When we run plugins in process, we actually run them on the render thread,
 // which means that we need to make the render thread pump UI events.
 RenderThreadImpl::RenderThreadImpl()
-    : ChildThread(Options(ShouldUseMojoChannel())) {
+    : ChildThread(Options(ShouldUseMojoChannel())) {//创建client端IPC通信通道的过程是在ChildThread类的构造函数中进行的
   Init();
 }
 

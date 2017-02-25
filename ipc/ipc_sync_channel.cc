@@ -406,6 +406,7 @@ base::WaitableEventWatcher::EventCallback
 }
 
 // static
+// IPC::SyncChannel类是从IPC::ChannelProxy类继承下来的，它与IPC::ChannelProxy的区别在于，前者既可以用来发送同步的IPC消息，也可以用来发送异步的IPC消息，而后者只可以用来发送异步消息。所谓同步IPC消息，就是发送者发送它给对端之后，会一直等待对方发送一个回复，而对于异步IPC消息，发送者把它发送给对端之后，不会进行等待，而是直接返回。
 scoped_ptr<SyncChannel> SyncChannel::Create(
     const IPC::ChannelHandle& channel_handle,
     Channel::Mode mode,
@@ -445,7 +446,7 @@ SyncChannel::SyncChannel(
     Listener* listener,
     const scoped_refptr<base::SingleThreadTaskRunner>& ipc_task_runner,
     WaitableEvent* shutdown_event)
-    : ChannelProxy(new SyncContext(listener, ipc_task_runner, shutdown_event)) {
+    : ChannelProxy(new SyncContext(listener, ipc_task_runner, shutdown_event)) {//创建一个SyncChannel::SyncContext对象，并使用该对象初始化父类ChannelProxy
   // The current (listener) thread must be distinct from the IPC thread, or else
   // sending synchronous messages will deadlock.
   DCHECK_NE(ipc_task_runner.get(), base::ThreadTaskRunnerHandle::Get().get());
